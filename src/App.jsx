@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import MethodWizard from './components/MethodWizard';
 import DataGrid from './components/DataGrid';
@@ -26,6 +26,31 @@ import {
 
 export default function App() {
   const [activePage, setActivePage] = useState('home');
+  const [isMusicPlaying, setIsMusicPlaying] = useState(false);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    audioRef.current = new Audio('/Degrees_of_Clarity.mp3');
+    audioRef.current.loop = true;
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
+
+  const toggleMusic = () => {
+    if (!audioRef.current) return;
+    if (isMusicPlaying) {
+      audioRef.current.pause();
+    } else {
+      audioRef.current.play().catch(err => {
+        console.error("Failed to play background music:", err);
+      });
+    }
+    setIsMusicPlaying(!isMusicPlaying);
+  };
+
   const [headers, setHeaders] = useState(['X', 'Y', 'Group']);
   
   // Initial dummy dataset for immediate usage and WOW effect
@@ -243,7 +268,7 @@ export default function App() {
     <div className="flex flex-col min-h-screen bg-darkBg text-slate-100">
       
       {/* 1. Navbar */}
-      <Navbar activePage={activePage} setActivePage={setActivePage} />
+      <Navbar activePage={activePage} setActivePage={setActivePage} isMusicPlaying={isMusicPlaying} toggleMusic={toggleMusic} />
 
       {/* Ambient gradient backgrounds */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-accentViolet/5 rounded-full blur-3xl pointer-events-none bg-pulse-violet"></div>

@@ -3,7 +3,8 @@ import Papa from 'papaparse';
 import { 
   Sparkles, Award, FileSpreadsheet, Upload, Download, 
   Settings, CheckCircle2, ChevronRight, HelpCircle, 
-  Printer, Brain, BarChart3, AlertCircle, Trash2, Plus
+  Printer, Brain, BarChart3, AlertCircle, Trash2, Plus,
+  BookOpen, Play, Info, FileText, GraduationCap
 } from 'lucide-react';
 import { calculateCTT, calculateIRT2PL, calculateCDM } from '../utils/psychometricsEngine';
 
@@ -60,6 +61,7 @@ export default function PsychometricsSuite() {
   const [cdmResults, setCdmResults] = useState(null);
 
   // 當前選取之展示狀態
+  const [subPage, setSubPage] = useState('explanation');
   const [activeTab, setActiveTab] = useState('ctt');
   const [selectedIccItem, setSelectedIccItem] = useState('Q1');
   const [selectedStudentIdx, setSelectedStudentIdx] = useState(4); // 預設 S5 (模擬文章)
@@ -223,7 +225,7 @@ export default function PsychometricsSuite() {
     ctx.font = '11px monospace';
     ctx.fillText(`鑑別度 a = ${a}`, paddingLeft + 15, paddingTop + 20);
 
-  }, [irtResults, selectedIccItem]);
+  }, [irtResults, selectedIccItem, subPage]);
 
   // 繪製 CDM 認知診斷雷達圖 (Radar Chart)
   useEffect(() => {
@@ -390,7 +392,7 @@ export default function PsychometricsSuite() {
     ctx.fillStyle = '#e2e8f0';
     ctx.fillText(`學生S${selectedStudentIdx + 1}精熟`, 48, 25);
 
-  }, [cdmResults, selectedStudentIdx, attributeNames, activeTab]);
+  }, [cdmResults, selectedStudentIdx, attributeNames, activeTab, subPage]);
 
   // 修改作答儲存格
   const handleMatrixCellChange = (rowIdx, colIdx, value) => {
@@ -690,8 +692,229 @@ export default function PsychometricsSuite() {
         </button>
       </div>
 
-      {/* 測驗理論簡介 (三合一卡片) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
+      {/* 子頁面切換導覽 (📖 理論模型說明 vs 🛠️ 互動分析工作區) */}
+      <div className="flex bg-slate-900/40 p-1 rounded-2xl border border-slate-800/80 max-w-md no-print">
+        <button
+          onClick={() => setSubPage('explanation')}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer ${
+            subPage === 'explanation'
+              ? 'bg-gradient-to-tr from-accentViolet/25 to-indigo-500/25 text-white border border-accentViolet/35 shadow-inner'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+          }`}
+        >
+          <BookOpen size={14} />
+          <span>📖 理論模型說明</span>
+        </button>
+        <button
+          onClick={() => setSubPage('workspace')}
+          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer ${
+            subPage === 'workspace'
+              ? 'bg-gradient-to-tr from-accentViolet/25 to-indigo-500/25 text-white border border-accentViolet/35 shadow-inner'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+          }`}
+        >
+          <Settings size={14} />
+          <span>🛠️ 互動分析工作區</span>
+        </button>
+      </div>
+
+      {subPage === 'explanation' ? (
+        /* ==================== 📖 理論模型說明頁 ==================== */
+        <div className="space-y-8 animate-fade-in no-print">
+          {/* Media Columns */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Left: Media Player & Diagram Showcase */}
+            <div className="lg:col-span-5 space-y-6">
+              {/* WebP Diagram Showcase Card */}
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-5 backdrop-blur-xl shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-yellow-500"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                    <span className="text-[10px] text-slate-400 font-bold ml-2">academic-suite.webp</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-slate-850 text-slate-400 text-[9px] font-bold border border-slate-800">IMAGE</span>
+                </div>
+                <div className="relative rounded-2xl overflow-hidden border border-slate-800/80 bg-slate-950 group">
+                  <img 
+                    src="/academic-suite.webp" 
+                    alt="Psychometrics Suite Interface Diagram" 
+                    className="w-full h-auto object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/20 to-transparent flex items-end p-4">
+                    <span className="text-2xs text-slate-300 font-semibold tracking-wide">心理計量特區高階分析儀表板架構示意圖</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Compressed Video Player Card */}
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-5 backdrop-blur-xl shadow-xl space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
+                  <div className="flex items-center space-x-2">
+                    <Play size={14} className="text-accentViolet animate-pulse" />
+                    <span className="text-[10px] text-slate-400 font-bold">動態分析系統操作展示影片</span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded bg-slate-850 text-slate-400 text-[9px] font-bold border border-slate-800">VIDEO</span>
+                </div>
+                <div className="relative rounded-2xl overflow-hidden border border-slate-800/80 bg-slate-950">
+                  <video 
+                    src="/academic-suite.mp4" 
+                    controls 
+                    loop 
+                    muted 
+                    className="w-full h-auto object-cover"
+                    poster="/academic-suite.webp"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Math Explanations & Theory */}
+            <div className="lg:col-span-7 space-y-6">
+              
+              {/* CTT Card */}
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+                <div className="flex items-center space-x-2.5 text-indigo-400 border-b border-slate-800/60 pb-3">
+                  <BarChart3 size={20} />
+                  <h3 className="text-lg font-black text-white">古典測驗理論 (Classical Test Theory, CTT)</h3>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                  古典測驗理論假設觀察分數 (X) 是真分數 (T) 與測量誤差 (E) 的線性組合：<span className="font-serif italic font-bold text-slate-200">X = T + E</span>。其分析焦點在於整份試卷的信度與單一試題的難度與鑑別度。
+                </p>
+                
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <h4 className="text-xs font-bold text-indigo-300">1. 庫李信度 (Kuder-Richardson 20, KR-20)</h4>
+                    <p className="text-[10px] text-slate-400 font-medium mb-2">適用於二元計分（0答錯/1答對）試卷的信度估算公式：</p>
+                    <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 font-mono text-center my-3">
+                      <span className="text-lg font-serif text-white tracking-wide">
+                        KR<sub>20</sub> = <div className="inline-block text-center align-middle"><div className="border-b border-slate-600 pb-0.5 px-2">k</div><div className="pt-0.5 px-2">k - 1</div></div> &times; <span className="text-2xl font-light align-middle">(</span>1 - <div className="inline-block text-center align-middle"><div className="border-b border-slate-600 pb-0.5 px-2">&sum; p<sub>i</sub>q<sub>i</sub></div><div className="pt-0.5 px-2">&sigma;<sub>X</sub><sup>2</sup></div></div><span className="text-2xl font-light align-middle">)</span>
+                      </span>
+                    </div>
+                    <ul className="text-[10px] text-slate-400 leading-relaxed space-y-1 list-disc list-inside">
+                      <li><span className="font-serif italic font-bold text-slate-300">k</span>: 試卷的總題數 (Test Length)。</li>
+                      <li><span className="font-serif italic font-bold text-slate-300">p<sub>i</sub></span>: 第 <span className="font-serif italic font-bold text-slate-300">i</span> 題的答對率 (Item Difficulty)。</li>
+                      <li><span className="font-serif italic font-bold text-slate-300">q<sub>i</sub></span>: 第 <span className="font-serif italic font-bold text-slate-300">i</span> 題的答錯率 (<span className="font-serif italic font-bold text-slate-300">1 - p<sub>i</sub></span>)。</li>
+                      <li><span className="font-serif italic font-bold text-slate-300">&sigma;<sub>X</sub><sup>2</sup></span>: 所有受試者總得分的變異數 (Total Variance)。</li>
+                    </ul>
+                  </div>
+
+                  <div className="border-t border-slate-800/60 pt-4">
+                    <h4 className="text-xs font-bold text-indigo-300">2. 斯皮爾曼-布朗折半信度 (Spearman-Brown Prophecy)</h4>
+                    <p className="text-[10px] text-slate-400 font-medium mb-2">將試卷分為奇偶數兩半，估算整份試卷之信度校正公式：</p>
+                    <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 font-mono text-center my-3">
+                      <span className="text-lg font-serif text-white tracking-wide">
+                        r<sub>xx</sub> = <div className="inline-block text-center align-middle"><div className="border-b border-slate-600 pb-0.5 px-4">2 &middot; r<sub>hh</sub></div><div className="pt-0.5 px-4">1 + r<sub>hh</sub></div></div>
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      其中 <span className="font-serif italic font-bold text-slate-300">r<sub>hh</sub></span> 為奇偶兩半試題得分的 Pearson 相關係數。
+                    </p>
+                  </div>
+
+                  <div className="border-t border-slate-800/60 pt-4">
+                    <h4 className="text-xs font-bold text-indigo-300">3. 高低分組鑑別度 (Item Discrimination Index, D)</h4>
+                    <p className="text-[10px] text-slate-400 font-medium mb-2">衡量試題區分考生能力優劣的簡易臨床指標：</p>
+                    <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 font-mono text-center my-3">
+                      <span className="text-lg font-serif text-white tracking-wide">
+                        D = P<sub>H</sub> - P<sub>L</sub>
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      其中 <span className="font-serif italic font-bold text-slate-300">P<sub>H</sub></span> 為班級高分組（得分前 27% 考生）在該題的答對率；<span className="font-serif italic font-bold text-slate-300">P<sub>L</sub></span> 為班級低分組（得分後 27% 考生）在該題的答對率。
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* IRT Card */}
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+                <div className="flex items-center space-x-2.5 text-accentViolet border-b border-slate-800/60 pb-3">
+                  <Brain size={20} />
+                  <h3 className="text-lg font-black text-white">項目反應理論 (Item Response Theory, IRT)</h3>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                  項目反應理論排除受試者樣本依賴性，將考生「潛在能力值」與試題的「特徵參數」對應到相同的數學尺度上。本平台採用經典的<b>雙參數邏輯斯模型 (2PL Model)</b>：
+                </p>
+
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <h4 className="text-xs font-bold text-purple-300">雙參數邏輯斯模型 (2-Parameter Logistic Model, 2PL)</h4>
+                    <p className="text-[10px] text-slate-400 font-medium mb-2">當能力為 &theta; 的考生，答對第 <span className="font-serif italic font-bold text-slate-300">j</span> 題之機率方程：</p>
+                    <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 font-mono text-center my-3">
+                      <span className="text-lg font-serif text-white tracking-wide">
+                        P(X<sub>ij</sub> = 1 | &theta;<sub>i</sub>) = <div className="inline-block text-center align-middle"><div className="border-b border-slate-600 pb-0.5 px-4">1</div><div className="pt-0.5 px-4">1 + e<sup>-D &middot; a<sub>j</sub>(&theta;<sub>i</sub> - b<sub>j</sub>)</sup></div></div>
+                      </span>
+                    </div>
+                    <ul className="text-[10px] text-slate-400 leading-relaxed space-y-1.5 list-disc list-inside">
+                      <li><b>&theta;<sub>i</sub> (潛在能力值, Latent Ability):</b> 考生的潛在特質或數學學科能力。通常在 <code className="text-slate-300">-3.0</code> 到 <code className="text-slate-300">+3.0</code> 之間。</li>
+                      <li><b>b<sub>j</sub> (難度參數, Difficulty Parameter):</b> 第 <span className="font-serif italic font-bold text-slate-300">j</span> 題的難度。其值代表當考生答對機率為 0.50 時所需具備的潛在能力值 &theta;。</li>
+                      <li><b>a<sub>j</sub> (鑑別度參數, Discrimination Parameter):</b> 曲線在難度點 <span className="font-serif italic font-bold text-slate-300">b<sub>j</sub></span> 處的斜率。值越大代表該題對鄰近能力考生的區分效果越顯著。</li>
+                      <li><b>D (尺度常數, Scaling Constant):</b> 一般設為 <code className="text-slate-300">1.702</code>，使邏輯斯曲線與常態累積機率曲線的差異小於 0.01。</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* CDM Card */}
+              <div className="bg-slate-900/60 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-xl shadow-xl space-y-4">
+                <div className="flex items-center space-x-2.5 text-accentEmerald border-b border-slate-800/60 pb-3">
+                  <Award size={20} />
+                  <h3 className="text-lg font-black text-white">認知診斷模型 (Cognitive Diagnostic Models, CDM)</h3>
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed font-medium">
+                  不同於 IRT 提供單一的能力總分，認知診斷模型 (CDM) 透過受試者的作答反應，推導其在細分學科认知屬性上的「精熟剖面向量」。本平台採用國際主流的 <b>DINA 模型</b>（Deterministic Inputs, Noisy "And" gate model）：
+                </p>
+
+                <div className="space-y-4 pt-2">
+                  <div>
+                    <h4 className="text-xs font-bold text-emerald-300">1. Q 矩陣對應關係 (Q-Matrix Architecture)</h4>
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      Q 矩陣為 <span className="font-serif italic font-bold text-slate-300">J &times; K</span>（試題數 &times; 屬性數）的二元矩陣。<span className="font-serif italic font-bold text-slate-300">q<sub>jk</sub> = 1</span> 表示第 <span className="font-serif italic font-bold text-slate-300">j</span> 題必須掌握第 <span className="font-serif italic font-bold text-slate-300">k</span> 個屬性才能正確作答；反之為 0。
+                    </p>
+                  </div>
+
+                  <div className="border-t border-slate-800/60 pt-4">
+                    <h4 className="text-xs font-bold text-emerald-300">2. 潛在掌握狀態與確定性作答反應 (DINA Model Core)</h4>
+                    <p className="text-[10px] text-slate-400 font-medium mb-2">定義理想上考生 <span className="font-serif italic font-bold text-slate-300">i</span> 對於試題 <span className="font-serif italic font-bold text-slate-300">j</span> 的理想反應值 &eta;<sub>ij</sub>：</p>
+                    <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 font-mono text-center my-2">
+                      <span className="text-base font-serif text-white tracking-wide">
+                        &eta;<sub>ij</sub> = <span className="text-xl align-middle">&prod;</span><sub>k=1</sub><sup>K</sup> &alpha;<sub>ik</sub><sup>q<sub>jk</sub></sup>
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 leading-relaxed mt-2">
+                      若考生 <span className="font-serif italic font-bold text-slate-300">i</span> 掌握了該題所需的所有認知屬性，&eta;<sub>ij</sub> = 1；若有任何一項缺失，&eta;<sub>ij</sub> = 0。
+                    </p>
+                  </div>
+
+                  <div className="border-t border-slate-800/60 pt-4">
+                    <h4 className="text-xs font-bold text-emerald-300">3. 引入失誤 (Slip) 與猜測 (Guess) 的答對機率</h4>
+                    <p className="text-[10px] text-slate-400 font-medium mb-2">真實情況中存在失誤與猜測，DINA 模型之真實作答機率方程為：</p>
+                    <div className="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-6 font-mono text-center my-3">
+                      <span className="text-lg font-serif text-white tracking-wide">
+                        P(X<sub>ij</sub> = 1 | <span className="font-bold">&alpha;</span><sub>i</sub>) = g<sub>j</sub><sup>(1 - &eta;<sub>ij</sub>)</sup> (1 - s<sub>j</sub>)<sup>&eta;<sub>ij</sub></sup>
+                      </span>
+                    </div>
+                    <ul className="text-[10px] text-slate-400 leading-relaxed space-y-1 list-disc list-inside">
+                      <li><b>s<sub>j</sub> (失誤參數, Slip):</b> 掌握了所有屬性卻因為粗心答錯的機率 <span className="font-serif italic text-slate-400">P(X<sub>ij</sub>=0|&eta;<sub>ij</sub>=1)</span>。</li>
+                      <li><b>g<sub>j</sub> (猜測參數, Guess):</b> 未掌握所有屬性卻猜對該題的機率 <span className="font-serif italic text-slate-400">P(X<sub>ij</sub>=1|&eta;<sub>ij</sub>=0)</span>。</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      ) : (
+        /* ==================== 🛠️ 互動分析工作區 ==================== */
+        <div className="space-y-8 animate-fade-in no-print">
+
+        {/* 測驗理論簡介 (三合一卡片) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 no-print">
         <div className="bg-slate-900/40 border border-slate-800/80 rounded-3xl p-5 hover:border-slate-700/80 transition-all duration-300">
           <div className="flex items-center space-x-2 text-indigo-400 mb-2">
             <BarChart3 size={18} />
@@ -1320,6 +1543,8 @@ export default function PsychometricsSuite() {
 
         </div>
       </div>
+    </div>
+  )}
 
       {/* ====================================================================== */}
       {/* 4. A4 印表級 APA 學術測驗分析報告 container (Hidden on screen, shown in print) */}
