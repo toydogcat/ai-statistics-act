@@ -467,11 +467,28 @@ export default function App() {
 
       {/* 3. Footer */}
       <footer className="py-8 bg-slate-950 border-t border-slate-900 text-center text-slate-500 text-xs font-semibold">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span>© 2026 ai-statistics-act. 智慧統計線上實踐版. All Rights Reserved.</span>
-          <span className="text-slate-600 hover:text-slate-400 transition-colors">
-            Designed with Premium Glassmorphism UI
-          </span>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col items-center md:items-start gap-1">
+            <span>© 2026 ai-statistics-act. 智慧統計線上實踐版. All Rights Reserved.</span>
+            <span className="text-slate-600 hover:text-slate-400 transition-colors text-[10px]">
+              Designed with Premium Glassmorphism UI
+            </span>
+          </div>
+          
+          {/* Vercount 訪客流量統計器 */}
+          <div className="flex items-center gap-5 text-[10px] font-mono text-slate-500 tracking-wider bg-slate-900/40 border border-slate-800/60 rounded-xl px-4 py-2 shadow-inner">
+            <span id="busuanzi_container_site_pv" className="flex items-center gap-2">
+              <span className="text-cyan-500/70 text-xs">👁️</span> 
+              <span className="uppercase text-slate-400 font-bold">總瀏覽量:</span>
+              <span id="busuanzi_value_site_pv" className="text-cyan-400 font-extrabold">...</span>
+            </span>
+            <span className="w-px h-3 bg-slate-800" />
+            <span id="busuanzi_container_site_uv" className="flex items-center gap-2">
+              <span className="text-pink-500/70 text-xs">👤</span> 
+              <span className="uppercase text-slate-400 font-bold">訪客數:</span>
+              <span id="busuanzi_value_site_uv" className="text-pink-400 font-extrabold">...</span>
+            </span>
+          </div>
         </div>
       </footer>
 

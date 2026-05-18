@@ -482,22 +482,28 @@ export default function PsychometricsSuite() {
           return;
         }
 
+        const headers = parsed[0];
+        const uploadedAttributes = headers.slice(1).map((h, idx) => h ? h.trim() : `A${idx + 1}`);
+        const numAttrs = uploadedAttributes.length;
+
         const newQ = [];
         const newItems = [];
         
         for (let i = 1; i < parsed.length; i++) {
           const itemName = parsed[i][0];
-          // 取出 A1 到 A4 的二元值
-          const rowData = parsed[i].slice(1, 5).map(v => {
+          if (!itemName) continue;
+          
+          // 取出所有二元值
+          const rowData = parsed[i].slice(1, 1 + numAttrs).map(v => {
             const num = parseInt(v, 10);
             return (num === 1 || num === 0) ? num : 0;
           });
           
-          while (rowData.length < 4) {
+          while (rowData.length < numAttrs) {
             rowData.push(0);
           }
           
-          newItems.push(itemName);
+          newItems.push(itemName.trim());
           newQ.push(rowData);
         }
 
@@ -517,18 +523,19 @@ export default function PsychometricsSuite() {
           setResponseMatrix(newMatrix);
         }
         
+        setAttributeNames(uploadedAttributes);
         setItemNames(newItems);
         setQMatrix(newQ);
         setSelectedIccItem(newItems[0] || 'Q1');
         
-        alert(`成功匯入 ${newItems.length} 道試題之 Q-Matrix 屬性關聯！`);
+        alert(`成功匯入 ${newItems.length} 道試題之 Q-Matrix 屬性關聯！共解析出 ${numAttrs} 個學科屬性。`);
       }
     });
   };
 
   // 匯出 Q-Matrix CSV
   const handleExportQMatrixCsv = () => {
-    const headerRow = ['Item', 'A1', 'A2', 'A3', 'A4'];
+    const headerRow = ['Item', ...attributeNames];
     const rows = itemNames.map((name, i) => [name, ...qMatrix[i]]);
     const csvContent = Papa.unparse([headerRow, ...rows]);
 
@@ -601,6 +608,28 @@ export default function PsychometricsSuite() {
     const newAttrs = [...attributeNames];
     newAttrs[idx] = value;
     setAttributeNames(newAttrs);
+  };
+
+  // 新增學科認知屬性
+  const handleAddAttribute = () => {
+    const nextIdx = attributeNames.length + 1;
+    setAttributeNames([...attributeNames, `新增學科屬性 A${nextIdx}`]);
+    const newQ = qMatrix.map(row => [...row, 0]);
+    setQMatrix(newQ);
+  };
+
+  // 刪除最末學科認知屬性
+  const handleRemoveAttribute = () => {
+    if (attributeNames.length <= 1) {
+      alert("必須至少保留 1 個學科屬性！");
+      return;
+    }
+    const confirmRemove = window.confirm(`您確定要刪除最末認知屬性「${attributeNames[attributeNames.length - 1]}」嗎？這將會清除對應的勾選狀態。`);
+    if (!confirmRemove) return;
+    
+    setAttributeNames(attributeNames.slice(0, -1));
+    const newQ = qMatrix.map(row => row.slice(0, -1));
+    setQMatrix(newQ);
   };
 
   // 列印完整 APA 學術報告
@@ -679,7 +708,7 @@ export default function PsychometricsSuite() {
             <h4 className="text-sm font-bold">項目反應理論 (IRT 2PL)</h4>
           </div>
           <p className="text-2xs text-slate-400 leading-relaxed font-medium">
-            排除樣本依賴性，以邏輯斯對數機率推導試題。透過**雙參數 (2PL) EM 最大概似估計**，獲得不隨學生能力而變的難度 ($b$) 與鑑別度 ($a$) 參數，並繪製 **項目特徵曲線 (ICC)**，精確評估學生潛在能力 $\theta$。
+            排除樣本依賴性，以邏輯斯對數機率推導試題。透過**雙參數 (2PL) EM 最大概似估計**，獲得不隨學生能力而變的難度 (<span className="font-serif italic font-bold text-slate-300">b</span>) 與鑑別度 (<span className="font-serif italic font-bold text-slate-300">a</span>) 參數，並繪製 **項目特徵曲線 (ICC)**，精確評估學生潛在能力 <span className="font-serif italic font-bold text-indigo-400">θ</span>。
           </p>
         </div>
 
@@ -689,7 +718,7 @@ export default function PsychometricsSuite() {
             <h4 className="text-sm font-bold">認知診斷模型 (CDM DINA)</h4>
           </div>
           <p className="text-2xs text-slate-400 leading-relaxed font-medium">
-            精細診斷學習弱點的革命性工具。透過作答反應與 **Q 矩陣** 對比，以 **DINA 模型** 搜尋概似度最高的潛在屬性掌握向量 $\alpha = [1, 1, 0, 0]，提供針對性補救教學指引。
+            精細診斷學習弱點的革命性工具。透過作答反應與 **Q 矩陣** 對比，以 **DINA 模型** 搜尋概似度最高的潛在屬性掌握向量 <span className="font-serif italic font-bold text-purple-400">α</span> = [1, 1, 0, 0]，提供針對性補救教學指引。
           </p>
         </div>
       </div>
@@ -824,7 +853,25 @@ export default function PsychometricsSuite() {
 
           {/* 屬性名稱自訂欄位 */}
           <div className="space-y-2">
-            <label className="text-4xs font-bold text-slate-400 uppercase tracking-wider block">自定義認知屬性說明文字 (無須加前綴，系統將自動套用)</label>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <label className="text-4xs font-bold text-slate-400 uppercase tracking-wider block">自定義認知屬性說明文字 (無須加前綴，系統將自動套用)</label>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={handleAddAttribute}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-accentEmerald text-xs font-bold border border-accentEmerald/20 transition-all duration-300 cursor-pointer"
+                >
+                  <Plus size={12} />
+                  <span>新增認知屬性</span>
+                </button>
+                <button
+                  onClick={handleRemoveAttribute}
+                  className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-bold border border-rose-500/20 transition-all duration-300 cursor-pointer"
+                >
+                  <Trash2 size={12} />
+                  <span>刪除最末屬性</span>
+                </button>
+              </div>
+            </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {attributeNames.map((name, idx) => (
                 <div key={idx} className="flex items-center space-x-2 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5">
@@ -864,7 +911,7 @@ export default function PsychometricsSuite() {
                     <td className="p-3 text-center bg-slate-900/20 text-slate-200 font-bold border-r border-slate-850">
                       {name}
                     </td>
-                    {Array.from({ length: 4 }).map((_, attrIdx) => {
+                    {attributeNames.map((_, attrIdx) => {
                       const isChecked = qMatrix[itemIdx] && qMatrix[itemIdx][attrIdx] === 1;
                       return (
                         <td key={attrIdx} className="p-3 text-center border-r border-slate-850/40">
@@ -1123,7 +1170,7 @@ export default function PsychometricsSuite() {
                   </div>
                   
                   <div className="text-5xs text-slate-500 leading-relaxed text-center font-medium">
-                    * 曲線反映該試題在不同數學能力（$\theta$ 從 -3 到 +3）的答對機率。當學生能力與難度 $b$ 相等時，答對機率精確為 0.5。斜率大小代表鑑別度 $a$。
+                    * 曲線反映該試題在不同數學能力（<span className="font-serif italic font-bold text-indigo-400">θ</span> 從 -3 到 +3）的答對機率。當學生能力與難度 <span className="font-serif italic font-bold text-slate-300">b</span> 相等時，答對機率精確為 0.5。斜率大小代表鑑別度 <span className="font-serif italic font-bold text-slate-300">a</span>。
                   </div>
                 </div>
 
@@ -1387,7 +1434,7 @@ export default function PsychometricsSuite() {
             <div className="space-y-4">
               <h3 className="text-lg font-bold border-b border-black pb-1">四、 項目反應理論 (IRT) 考生能力估計</h3>
               <p className="text-xs text-gray-800 leading-relaxed">
-                利用雙參數邏輯斯模型 (2PL)，將考生原始答對分數轉換為潛在數學能力值 ($\theta$)，以最大概似法估計（加上貝氏 MAP 先前權重校正），考生能力與相對排名如下表所示：
+                利用雙參數邏輯斯模型 (2PL)，將考生原始答對分數轉換為潛在數學能力值 (<span className="font-serif italic font-bold text-black">θ</span>)，以最大概似法估計（加上貝氏 MAP 先前權重校正），考生能力與相對排名如下表所示：
               </p>
               
               {/* 學生能力三線表 */}
@@ -1437,7 +1484,7 @@ export default function PsychometricsSuite() {
                 <thead>
                   <tr className="border-b border-black bg-gray-100">
                     <th className="p-2">學生代號</th>
-                    <th className="p-2">精熟屬性向量 [A1, A2, A3, A4]</th>
+                    <th className="p-2">精熟屬性向量 [{attributeNames.map((_, idx) => `A${idx+1}`).join(', ')}]</th>
                     <th className="p-2 text-left">學習診斷與精熟特徵</th>
                     <th className="p-2 text-left">課後補救教學建議</th>
                   </tr>
@@ -1448,7 +1495,7 @@ export default function PsychometricsSuite() {
                       <td className="p-2 font-bold">{st.studentId}</td>
                       <td className="p-2 font-bold text-gray-800">{st.profileString}</td>
                       <td className="p-2 text-left text-gray-600 font-medium">
-                        {st.profile.reduce((sum, v) => sum + v, 0) === 4 
+                        {st.profile.reduce((sum, v) => sum + v, 0) === attributeNames.length 
                           ? '完全精熟各向度概念' 
                           : `已掌握 ${st.profile.reduce((sum, v) => sum + v, 0)} 個學科向度`}
                       </td>
