@@ -739,7 +739,7 @@ export default function PsychometricsSuite() {
                 </div>
                 <div className="relative rounded-2xl overflow-hidden border border-slate-800/80 bg-slate-950 group">
                   <img 
-                    src="/academic-suite.webp" 
+                    src="./academic-suite.webp" 
                     alt="Psychometrics Suite Interface Diagram" 
                     className="w-full h-auto object-cover transform group-hover:scale-[1.02] transition-transform duration-500"
                   />
@@ -760,12 +760,12 @@ export default function PsychometricsSuite() {
                 </div>
                 <div className="relative rounded-2xl overflow-hidden border border-slate-800/80 bg-slate-950">
                   <video 
-                    src="/academic-suite.mp4" 
+                    src="./academic-suite.mp4" 
                     controls 
                     loop 
                     muted 
                     className="w-full h-auto object-cover"
-                    poster="/academic-suite.webp"
+                    poster="./academic-suite.webp"
                   />
                 </div>
               </div>

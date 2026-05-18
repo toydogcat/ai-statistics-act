@@ -30,7 +30,7 @@ export default function App() {
   const audioRef = useRef(null);
 
   useEffect(() => {
-    audioRef.current = new Audio('/Degrees_of_Clarity.mp3');
+    audioRef.current = new Audio('./Degrees_of_Clarity.mp3');
     audioRef.current.loop = true;
     return () => {
       if (audioRef.current) {
