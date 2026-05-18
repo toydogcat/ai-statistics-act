@@ -5,6 +5,7 @@ import DataGrid from './components/DataGrid';
 import SimpleAnalysis from './components/SimpleAnalysis';
 import ReportTemplate from './components/ReportTemplate';
 import PsychometricsSuite from './components/PsychometricsSuite';
+import DiagnosticSuite from './components/DiagnosticSuite';
 
 import { 
   calculateIndependentT, 
@@ -28,6 +29,17 @@ export default function App() {
   const [activePage, setActivePage] = useState('home');
   const [isMusicPlaying, setIsMusicPlaying] = useState(false);
   const audioRef = useRef(null);
+
+  const handleImportFromDiagnostic = (csvHeaders, csvRows, targetMethod, targetMapping) => {
+    setHeaders(csvHeaders);
+    setData(csvRows);
+    setSelectedMethod(targetMethod);
+    setVariableMapping(targetMapping);
+    setActivePage('editor');
+    setTimeout(() => {
+      handleRunAnalysis();
+    }, 200);
+  };
 
   useEffect(() => {
     audioRef.current = new Audio('./Degrees_of_Clarity.mp3');
@@ -350,6 +362,9 @@ export default function App() {
         ) : activePage === 'psychometrics' ? (
           /* PSYCHOMETRICS SUITE: Special psychometrics portal */
           <PsychometricsSuite />
+        ) : activePage === 'diagnostic' ? (
+          /* DIAGNOSTIC SUITE: Smart advisor portal */
+          <DiagnosticSuite onImportAndAnalyze={handleImportFromDiagnostic} />
         ) : (
           /* EDITOR PAGE: Spreadsheet editor + Variable assignment + Results */
           <div className="space-y-8 animate-fade-in">

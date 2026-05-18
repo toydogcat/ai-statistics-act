@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, FileSpreadsheet, Sparkles, Brain } from 'lucide-react';
+import { BarChart3, FileSpreadsheet, Sparkles, Brain, Activity } from 'lucide-react';
 
 export default function Navbar({ activePage, setActivePage, isMusicPlaying, toggleMusic }) {
   return (
@@ -60,6 +60,18 @@ export default function Navbar({ activePage, setActivePage, isMusicPlaying, togg
           >
             <Brain size={16} className="text-accentViolet" />
             <span>心理計量特區</span>
+          </button>
+
+          <button
+            onClick={() => setActivePage('diagnostic')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+              activePage === 'diagnostic'
+                ? 'bg-gradient-to-r from-accentViolet/25 to-indigo-500/25 text-white border border-accentViolet/45 shadow-inner'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent'
+            }`}
+          >
+            <Activity size={16} className="text-accentViolet animate-[pulse_2s_infinite]" />
+            <span>萬能診斷分析</span>
           </button>
 
           <span className="w-px h-6 bg-slate-800 mx-2 hidden sm:block"></span>
