@@ -36,10 +36,10 @@ export default function PsychometricsSuite() {
 
   // 2. 認知屬性名稱設定
   const [attributeNames, setAttributeNames] = useState([
-    'A1: 代數運算 (Algebra)',
-    'A2: 幾何分析 (Geometry)',
-    'A3: 機率統計 (Probability)',
-    'A4: 矩陣向量 (Matrix)'
+    '代數運算 (Algebra)',
+    '幾何分析 (Geometry)',
+    '機率統計 (Probability)',
+    '矩陣向量 (Matrix)'
   ]);
 
   // 3. 預設 Q 矩陣 (5題 x 4屬性)
@@ -65,6 +65,7 @@ export default function PsychometricsSuite() {
   const [selectedStudentIdx, setSelectedStudentIdx] = useState(4); // 預設 S5 (模擬文章)
 
   const iccCanvasRef = useRef(null);
+  const cdmRadarCanvasRef = useRef(null);
 
   // 執行三大心理計量模型分析
   const handleRunAnalysis = () => {
@@ -224,6 +225,173 @@ export default function PsychometricsSuite() {
 
   }, [irtResults, selectedIccItem]);
 
+  // 繪製 CDM 認知診斷雷達圖 (Radar Chart)
+  useEffect(() => {
+    if (!cdmResults || !cdmRadarCanvasRef.current || activeTab !== 'cdm') return;
+    const canvas = cdmRadarCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    const width = 320;
+    const height = 230;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    ctx.scale(dpr, dpr);
+
+    // 背景清除
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, width, height);
+
+    // 中心點與半徑
+    const centerX = width / 2;
+    const centerY = height / 2 + 10;
+    const radius = 65;
+
+    const K = attributeNames.length; 
+    if (K === 0) return;
+
+    // 取得當前學生精熟向量
+    const student = cdmResults.studentProfiles[selectedStudentIdx];
+    if (!student) return;
+    const studentProfile = student.profile; 
+
+    // 取得班級平均精熟比率
+    const classPercentages = cdmResults.classMasteryPercentages.map(a => a.percentage); 
+
+    // 1. 繪製雷達圖多邊形網格 (20%, 40%, 60%, 80%, 100%)
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 1;
+    ctx.font = 'bold 8px sans-serif';
+    ctx.fillStyle = '#64748b';
+
+    const levels = [0.2, 0.4, 0.6, 0.8, 1.0];
+    levels.forEach(level => {
+      ctx.beginPath();
+      for (let i = 0; i < K; i++) {
+        const angle = (i * 2 * Math.PI) / K - Math.PI / 2;
+        const x = centerX + Math.cos(angle) * radius * level;
+        const y = centerY + Math.sin(angle) * radius * level;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      // 繪製格線文字 (在頂端軸線上標註百分比)
+      const topAngle = -Math.PI / 2;
+      const tx = centerX + Math.cos(topAngle) * radius * level;
+      const ty = centerY + Math.sin(topAngle) * radius * level;
+      ctx.fillStyle = '#475569';
+      ctx.fillText(`${Math.round(level * 100)}%`, tx + 4, ty + 3);
+    });
+
+    // 2. 繪製放射狀軸線與屬性標籤文字
+    for (let i = 0; i < K; i++) {
+      const angle = (i * 2 * Math.PI) / K - Math.PI / 2;
+      const x = centerX + Math.cos(angle) * radius;
+      const y = centerY + Math.sin(angle) * radius;
+
+      // 畫軸線
+      ctx.strokeStyle = '#475569';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+
+      // 畫標籤
+      const labelDistance = radius + 18;
+      const lx = centerX + Math.cos(angle) * labelDistance;
+      const ly = centerY + Math.sin(angle) * labelDistance;
+
+      // 文字對齊調整
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = 'bold 9px sans-serif';
+      
+      const cleanLabel = `A${i+1}`;
+      
+      let align = 'center';
+      if (Math.cos(angle) > 0.1) align = 'left';
+      else if (Math.cos(angle) < -0.1) align = 'right';
+      
+      ctx.textAlign = align;
+      ctx.fillText(cleanLabel, lx, ly + 3);
+    }
+    ctx.textAlign = 'center'; // 恢復預設
+
+    // 3. 繪製全班平均掌握度多邊形 (綠色填充)
+    ctx.beginPath();
+    for (let i = 0; i < K; i++) {
+      const angle = (i * 2 * Math.PI) / K - Math.PI / 2;
+      const score = classPercentages[i] / 100; 
+      const x = centerX + Math.cos(angle) * radius * score;
+      const y = centerY + Math.sin(angle) * radius * score;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(16, 185, 129, 0.12)'; 
+    ctx.fill();
+    ctx.strokeStyle = '#10b981'; 
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // 4. 繪製個別學生掌握度多邊形 (紫色點與線)
+    ctx.beginPath();
+    for (let i = 0; i < K; i++) {
+      const angle = (i * 2 * Math.PI) / K - Math.PI / 2;
+      const score = studentProfile[i]; 
+      const x = centerX + Math.cos(angle) * radius * score;
+      const y = centerY + Math.sin(angle) * radius * score;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(139, 92, 246, 0.2)'; 
+    ctx.fill();
+    ctx.strokeStyle = '#a78bfa'; 
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 繪製學生頂點圓圈
+    for (let i = 0; i < K; i++) {
+      const angle = (i * 2 * Math.PI) / K - Math.PI / 2;
+      const score = studentProfile[i];
+      const x = centerX + Math.cos(angle) * radius * score;
+      const y = centerY + Math.sin(angle) * radius * score;
+
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, 2 * Math.PI);
+      ctx.fillStyle = score === 1 ? '#a78bfa' : '#475569';
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // 5. 繪製圖例 (Legend)
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+    ctx.fillRect(5, 5, 85, 32);
+    ctx.strokeStyle = '#334155';
+    ctx.strokeRect(5, 5, 85, 32);
+
+    // 全班平均
+    ctx.fillStyle = '#10b981';
+    ctx.fillRect(10, 10, 8, 4);
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = 'bold 8px sans-serif';
+    ctx.fillText('全班平均', 48, 14);
+
+    // 個別學生
+    ctx.fillStyle = '#a78bfa';
+    ctx.fillRect(10, 21, 8, 4);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.fillText(`學生S${selectedStudentIdx + 1}精熟`, 48, 25);
+
+  }, [cdmResults, selectedStudentIdx, attributeNames, activeTab]);
+
   // 修改作答儲存格
   const handleMatrixCellChange = (rowIdx, colIdx, value) => {
     const val = parseInt(value, 10);
@@ -295,6 +463,80 @@ export default function PsychometricsSuite() {
     const link = document.createElement("a");
     link.setAttribute("href", url);
     link.setAttribute("download", "student_response_matrix.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // 匯入 CSV Q-Matrix
+  const handleQMatrixCsvUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      skipEmptyLines: true,
+      complete: (results) => {
+        const parsed = results.data;
+        if (parsed.length < 2) {
+          alert("CSV 格式不正確，必須包含題頭列與至少一列 Q-Matrix 資料！");
+          return;
+        }
+
+        const newQ = [];
+        const newItems = [];
+        
+        for (let i = 1; i < parsed.length; i++) {
+          const itemName = parsed[i][0];
+          // 取出 A1 到 A4 的二元值
+          const rowData = parsed[i].slice(1, 5).map(v => {
+            const num = parseInt(v, 10);
+            return (num === 1 || num === 0) ? num : 0;
+          });
+          
+          while (rowData.length < 4) {
+            rowData.push(0);
+          }
+          
+          newItems.push(itemName);
+          newQ.push(rowData);
+        }
+
+        if (newItems.length !== itemNames.length) {
+          const confirmSync = window.confirm(
+            `匯入的 Q-Matrix 有 ${newItems.length} 道題，但目前作答反應有 ${itemNames.length} 道題。是否要自動調整作答反應的題目數量？`
+          );
+          if (!confirmSync) return;
+          
+          const newMatrix = responseMatrix.map(row => {
+            const newRow = Array(newItems.length).fill(0);
+            for (let c = 0; c < Math.min(row.length, newItems.length); c++) {
+              newRow[c] = row[c];
+            }
+            return newRow;
+          });
+          setResponseMatrix(newMatrix);
+        }
+        
+        setItemNames(newItems);
+        setQMatrix(newQ);
+        setSelectedIccItem(newItems[0] || 'Q1');
+        
+        alert(`成功匯入 ${newItems.length} 道試題之 Q-Matrix 屬性關聯！`);
+      }
+    });
+  };
+
+  // 匯出 Q-Matrix CSV
+  const handleExportQMatrixCsv = () => {
+    const headerRow = ['Item', 'A1', 'A2', 'A3', 'A4'];
+    const rows = itemNames.map((name, i) => [name, ...qMatrix[i]]);
+    const csvContent = Papa.unparse([headerRow, ...rows]);
+
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "q_matrix.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -447,22 +689,22 @@ export default function PsychometricsSuite() {
             <h4 className="text-sm font-bold">認知診斷模型 (CDM DINA)</h4>
           </div>
           <p className="text-2xs text-slate-400 leading-relaxed font-medium">
-            精細診斷學習弱點的革命性工具。透過作答反應與 **Q 矩陣** 對比，以 **DINA 模型** 搜尋概似度最高的潛在屬性掌握向量 $\alpha = [1, 1, 0, 0]$，提供針對性補救教學指引。
+            精細診斷學習弱點的革命性工具。透過作答反應與 **Q 矩陣** 對比，以 **DINA 模型** 搜尋概似度最高的潛在屬性掌握向量 $\alpha = [1, 1, 0, 0]，提供針對性補救教學指引。
           </p>
         </div>
       </div>
 
-      {/* 雙網格編輯面板 (學生作答矩陣 + Q矩陣) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 no-print">
+      {/* 編輯面板區 (學生作答矩陣與 Q-Matrix 分離為獨立全寬版面) */}
+      <div className="flex flex-col space-y-8 no-print">
         
-        {/* 左側：學生二元作答矩陣 (0/1) */}
-        <div className="lg:col-span-7 bg-slate-900/60 rounded-3xl p-6 border border-slate-800/80 backdrop-blur-xl shadow-xl flex flex-col space-y-4">
+        {/* 學生二元作答反應矩陣 (0/1) - 全寬大版面 */}
+        <div className="bg-slate-900/60 rounded-3xl p-6 border border-slate-800/80 backdrop-blur-xl shadow-xl flex flex-col space-y-4 w-full">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800/60 pb-4">
             <div className="flex items-center space-x-2">
               <FileSpreadsheet className="text-indigo-400" size={18} />
               <div>
                 <h3 className="text-base font-bold text-white">學生二元作答反應矩陣 (0 / 1)</h3>
-                <span className="text-4xs text-slate-400 font-medium">請輸入 1 代表答對，0 代表答錯。可線上自由編輯或增減行列。</span>
+                <span className="text-4xs text-slate-400 font-medium">請輸入 1 代表答對，0 代表答錯。可線上雙擊編輯儲存格或增減行列。</span>
               </div>
             </div>
 
@@ -483,7 +725,7 @@ export default function PsychometricsSuite() {
           </div>
 
           {/* 線上數據網格 */}
-          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/80 max-h-[380px]">
+          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/80 max-h-[400px]">
             <table className="w-full text-left border-collapse text-xs font-medium">
               <thead className="sticky top-0 bg-slate-900 text-slate-300 font-bold border-b border-slate-800 z-10">
                 <tr>
@@ -491,44 +733,40 @@ export default function PsychometricsSuite() {
                   {itemNames.map((name, idx) => (
                     <th key={name} className="p-3 text-center group min-w-16 relative">
                       <div className="flex flex-col items-center">
-                        <span className="text-slate-100 font-extrabold">{name}</span>
-                        <button 
-                          onClick={() => handleRemoveItem(idx)}
-                          className="mt-1 text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
-                          title={`刪除試題 ${name}`}
-                        >
-                          <Trash2 size={10} />
-                        </button>
+                        <span className="text-slate-200 font-black">{name}</span>
+                        {/* 雙擊修改題名提示 */}
+                        <span className="text-[8px] text-slate-500 font-semibold group-hover:text-indigo-400 transition-colors">
+                          雙擊修改
+                        </span>
                       </div>
                     </th>
                   ))}
-                  <th className="p-3 text-center w-16">刪除</th>
+                  <th className="p-3 text-center w-16">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/80 text-slate-300">
                 {responseMatrix.map((row, rowIdx) => (
                   <tr key={rowIdx} className="hover:bg-slate-900/40 transition-colors">
-                    <td className="p-3 text-center bg-slate-900/20 text-slate-400 font-bold">
+                    <td className="p-3 text-center font-bold bg-slate-900/20 text-slate-200 border-r border-slate-850">
                       S{rowIdx + 1}
                     </td>
                     {row.map((cell, colIdx) => (
-                      <td key={colIdx} className="p-2 text-center">
-                        <select
+                      <td key={colIdx} className="p-2 text-center border-r border-slate-850/40">
+                        <input
+                          type="text"
                           value={cell}
                           onChange={(e) => handleMatrixCellChange(rowIdx, colIdx, e.target.value)}
-                          className="w-12 py-1 text-center bg-slate-900 border border-slate-800 rounded-lg text-slate-100 font-black focus:border-accentViolet outline-none transition-all cursor-pointer"
-                        >
-                          <option value={1}>1</option>
-                          <option value={0}>0</option>
-                        </select>
+                          className="w-8 h-8 text-center bg-slate-900 hover:bg-slate-850 focus:bg-slate-950 text-slate-200 border border-slate-800 focus:border-indigo-500 rounded-lg outline-none font-bold text-2xs transition-colors"
+                        />
                       </td>
                     ))}
                     <td className="p-2 text-center">
                       <button
                         onClick={() => handleRemoveStudent(rowIdx)}
-                        className="text-slate-600 hover:text-red-400 transition-colors cursor-pointer"
+                        className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors border border-red-500/10"
+                        title="刪除學生"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={12} />
                       </button>
                     </td>
                   </tr>
@@ -557,23 +795,40 @@ export default function PsychometricsSuite() {
           </div>
         </div>
 
-        {/* 右側：Q 矩陣與認知屬性設定面板 */}
-        <div className="lg:col-span-5 bg-slate-900/60 rounded-3xl p-6 border border-slate-800/80 backdrop-blur-xl shadow-xl flex flex-col space-y-4">
-          <div className="flex items-center space-x-2 border-b border-slate-800/60 pb-4">
-            <Settings className="text-accentEmerald" size={18} />
-            <div>
-              <h3 className="text-base font-bold text-white">Q-Matrix 認知屬性映射面板</h3>
-              <span className="text-4xs text-slate-400 font-medium">勾選表示該題目需要精熟該認知屬性（可用於 CDM DINA 診斷）</span>
+        {/* Q-Matrix 認知屬性映射面板 - 全寬大版面 */}
+        <div className="bg-slate-900/60 rounded-3xl p-6 border border-slate-800/80 backdrop-blur-xl shadow-xl flex flex-col space-y-4 w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800/60 pb-4">
+            <div className="flex items-center space-x-2">
+              <Settings className="text-accentEmerald" size={18} />
+              <div>
+                <h3 className="text-base font-bold text-white">Q-Matrix 認知屬性映射面板</h3>
+                <span className="text-4xs text-slate-400 font-medium">勾選表示該試題需要精熟該認知屬性（適用於 CDM DINA 認知診斷模型）。</span>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <label className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all cursor-pointer">
+                <Upload size={13} className="text-accentEmerald" />
+                <span>匯入 Q-Matrix CSV</span>
+                <input type="file" accept=".csv" onChange={handleQMatrixCsvUpload} className="hidden" />
+              </label>
+              <button
+                onClick={handleExportQMatrixCsv}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all cursor-pointer"
+              >
+                <Download size={13} className="text-accentEmerald" />
+                <span>匯出 Q-Matrix CSV</span>
+              </button>
             </div>
           </div>
 
           {/* 屬性名稱自訂欄位 */}
           <div className="space-y-2">
-            <label className="text-4xs font-bold text-slate-400 uppercase tracking-wider block">自定義四大屬性名稱</label>
-            <div className="grid grid-cols-2 gap-2">
+            <label className="text-4xs font-bold text-slate-400 uppercase tracking-wider block">自定義認知屬性說明文字 (無須加前綴，系統將自動套用)</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {attributeNames.map((name, idx) => (
-                <div key={idx} className="flex items-center space-x-1 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1">
-                  <span className="text-5xs font-black text-accentEmerald w-4">A{idx+1}</span>
+                <div key={idx} className="flex items-center space-x-2 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1.5">
+                  <span className="text-5xs font-black text-accentEmerald w-4 bg-accentEmerald/10 rounded px-1 py-0.5 text-center">A{idx+1}</span>
                   <input
                     type="text"
                     value={name}
@@ -586,27 +841,33 @@ export default function PsychometricsSuite() {
           </div>
 
           {/* Q 矩陣 Checkbox 編輯網格 */}
-          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/80 flex-grow max-h-[300px]">
+          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/80 max-h-[350px]">
             <table className="w-full text-left border-collapse text-xs font-medium">
               <thead className="sticky top-0 bg-slate-900 text-slate-300 font-bold border-b border-slate-800 z-10">
                 <tr>
-                  <th className="p-3 text-center w-16">試題</th>
-                  <th className="p-3 text-center">A1</th>
-                  <th className="p-3 text-center">A2</th>
-                  <th className="p-3 text-center">A3</th>
-                  <th className="p-3 text-center">A4</th>
+                  <th className="p-3 text-center w-24">試題 ID</th>
+                  {attributeNames.map((name, idx) => (
+                    <th key={idx} className="p-3 text-center" title={`A${idx+1}: ${name}`}>
+                      <div className="flex flex-col items-center">
+                        <span className="text-slate-100 font-extrabold">A{idx+1}</span>
+                        <span className="text-[9px] text-slate-500 font-bold truncate max-w-[160px] mt-0.5">
+                          {name}
+                        </span>
+                      </div>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/80 text-slate-300">
                 {itemNames.map((name, itemIdx) => (
                   <tr key={name} className="hover:bg-slate-900/40 transition-colors">
-                    <td className="p-3 text-center bg-slate-900/20 text-slate-200 font-bold">
+                    <td className="p-3 text-center bg-slate-900/20 text-slate-200 font-bold border-r border-slate-850">
                       {name}
                     </td>
                     {Array.from({ length: 4 }).map((_, attrIdx) => {
                       const isChecked = qMatrix[itemIdx] && qMatrix[itemIdx][attrIdx] === 1;
                       return (
-                        <td key={attrIdx} className="p-3 text-center">
+                        <td key={attrIdx} className="p-3 text-center border-r border-slate-850/40">
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -884,7 +1145,7 @@ export default function PsychometricsSuite() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {cdmResults.classMasteryPercentages.map((attr, idx) => (
                     <div key={attr.attribute} className="bg-slate-950/40 border border-slate-800 rounded-2xl p-4 flex flex-col space-y-2">
-                      <span className="text-4xs font-bold text-slate-300 truncate">{attr.attribute}</span>
+                      <span className="text-4xs font-bold text-slate-300 truncate">A{idx + 1}: {attr.attribute}</span>
                       
                       {/* 自訂進度條 */}
                       <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-slate-800">
@@ -954,26 +1215,43 @@ export default function PsychometricsSuite() {
                     </span>
                   </div>
 
-                  {/* 屬性精熟柱狀條 */}
-                  <div className="space-y-3.5">
-                    <span className="text-4xs font-bold text-slate-400 uppercase block tracking-wider">認知屬性精熟掌握詳情</span>
-                    <div className="space-y-2.5">
-                      {attributeNames.map((name, k) => {
-                        const isMastered = cdmResults.studentProfiles[selectedStudentIdx]?.profile[k] === 1;
-                        return (
-                          <div key={name} className="flex items-center justify-between bg-slate-950/80 border border-slate-800/80 rounded-2xl px-4 py-2 text-2xs font-semibold">
-                            <span className="text-slate-200">{name}</span>
-                            <span className={`px-2.5 py-0.5 rounded-full text-5xs font-black ${
-                              isMastered 
-                                ? 'bg-accentEmerald/10 text-accentEmerald border border-accentEmerald/20' 
-                                : 'bg-red-500/10 text-red-400 border border-red-500/20'
-                            }`}>
-                              {isMastered ? '精熟 (Mastered)' : '未精熟 (Non-Mastered)'}
-                            </span>
-                          </div>
-                        );
-                      })}
+                  {/* 屬性掌握詳情與雷達圖對照 (雙欄佈局) */}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                    
+                    {/* 左側：精熟掌握度清單 */}
+                    <div className="md:col-span-5 space-y-2.5">
+                      <span className="text-4xs font-bold text-slate-400 uppercase block tracking-wider">認知屬性掌握</span>
+                      <div className="space-y-2">
+                        {attributeNames.map((name, k) => {
+                          const isMastered = cdmResults.studentProfiles[selectedStudentIdx]?.profile[k] === 1;
+                          return (
+                            <div key={name} className="flex items-center justify-between bg-slate-950/80 border border-slate-800/80 rounded-xl px-3 py-2 text-3xs font-semibold">
+                              <span className="text-slate-200 truncate max-w-[110px]" title={`A${k+1}: ${name}`}>
+                                A{k+1}: {name}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-full text-[8px] font-black ${
+                                isMastered 
+                                  ? 'bg-accentEmerald/10 text-accentEmerald border border-accentEmerald/20' 
+                                  : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                              }`}>
+                                {isMastered ? '精熟' : '未精熟'}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
+
+                    {/* 右側：Canvas 雷達圖 */}
+                    <div className="md:col-span-7 flex flex-col items-center justify-center">
+                      <div className="relative rounded-2xl border border-slate-800/60 overflow-hidden bg-slate-950/80 p-2 shadow-inner">
+                        <canvas ref={cdmRadarCanvasRef}></canvas>
+                      </div>
+                      <span className="text-[9px] text-slate-500 font-bold mt-2">
+                        全班平均掌握度 (綠) vs 個別學生成就向量 (紫)
+                      </span>
+                    </div>
+
                   </div>
 
                   {/* 專屬 AI 診斷與補救方針 */}
@@ -1197,9 +1475,9 @@ export default function PsychometricsSuite() {
                   </tr>
                 </thead>
                 <tbody>
-                  {cdmResults && cdmResults.classMasteryPercentages.map((attr) => (
+                  {cdmResults && cdmResults.classMasteryPercentages.map((attr, idx) => (
                     <tr key={attr.attribute}>
-                      <td className="p-2 font-bold text-left">{attr.attribute}</td>
+                      <td className="p-2 font-bold text-left">A{idx + 1}: {attr.attribute}</td>
                       <td className="p-2 font-extrabold">{attr.percentage}%</td>
                       <td className="p-2 text-left text-gray-600 font-medium">
                         {attr.percentage >= 70 
