@@ -208,7 +208,7 @@ export default function App() {
                 <span>專為論文寫作者打造的智慧統計助理</span>
               </div>
               <h2 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-none">
-                傻瓜統計線上分析平台
+                線上智慧統計分析平台
               </h2>
               <p className="text-base text-slate-400 leading-relaxed font-medium">
                 結合《給論文寫作者的統計指南》方法論。無須繁雜的軟體操作與艱深代碼，只需三步：上傳數據、選定變項，一鍵獲得精美的 <strong>APA 統計表</strong>與<strong>標準論述報告</strong>。
@@ -226,12 +226,12 @@ export default function App() {
               <div className="inline-flex items-center space-x-6 text-sm font-semibold text-slate-400">
                 <a href="#/book1" className="hover:text-accentViolet transition-colors flex items-center space-x-1">
                   <BookOpen size={14} />
-                  <span>傻瓜跑統計 I (基礎篇)</span>
+                  <span>給論文寫作者的統計指南 (基礎篇)</span>
                 </a>
                 <span className="text-slate-700">|</span>
                 <a href="#/book2" className="hover:text-accentEmerald transition-colors flex items-center space-x-1">
                   <BookOpen size={14} />
-                  <span>傻瓜跑統計 II (進階 R/SPSS 篇)</span>
+                  <span>給論文寫作者的進階統計指南 (進階篇)</span>
                 </a>
               </div>
             </div>
@@ -320,7 +320,7 @@ export default function App() {
       {/* 3. Footer */}
       <footer className="py-8 bg-slate-950 border-t border-slate-900 text-center text-slate-500 text-xs font-semibold">
         <div className="max-w-7xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <span>© 2026 ai-statistics-act. 傻瓜跑統計線上實踐版. All Rights Reserved.</span>
+          <span>© 2026 ai-statistics-act. 智慧統計線上實踐版. All Rights Reserved.</span>
           <span className="text-slate-600 hover:text-slate-400 transition-colors">
             Designed with Premium Glassmorphism UI
           </span>

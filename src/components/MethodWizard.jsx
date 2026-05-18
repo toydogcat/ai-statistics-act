@@ -46,7 +46,7 @@ export default function MethodWizard({ onSelectMethod }) {
               title: '獨立樣本 t 檢定 (Independent Samples t-test)',
               unit: 'Unit 3',
               desc: '用於比較兩個獨立組別（如：男生與女生、實驗組與對照組）在連續變項上的平均數差異。',
-              book: '傻瓜跑統計 I - Unit 3'
+              book: '給論文寫作者的統計指南 - Unit 3'
             };
           } else {
             return {
@@ -54,7 +54,7 @@ export default function MethodWizard({ onSelectMethod }) {
               title: '相依樣本 t 檢定 (Paired/Dependent Samples t-test)',
               unit: 'Unit 4',
               desc: '用於比較同一組受試者在重複測量或配對設計下（如：前測與後測）的平均數差異。',
-              book: '傻瓜跑統計 I - Unit 4'
+              book: '給論文寫作者的統計指南 - Unit 4'
             };
           }
         } else {
@@ -65,7 +65,7 @@ export default function MethodWizard({ onSelectMethod }) {
               title: '單因子獨立樣本變異數分析 (One-way Independent ANOVA)',
               unit: 'Unit 16',
               desc: '用於比較三個以上獨立組別（如：低、中、高滿意度組）在連續變項上的平均數差異。若顯著需跑事後比較。',
-              book: '傻瓜跑統計 I - Unit 16'
+              book: '給論文寫作者的統計指南 - Unit 16'
             };
           } else {
             return {
@@ -73,7 +73,7 @@ export default function MethodWizard({ onSelectMethod }) {
               title: '單因子相依樣本變異數分析 (One-way Dependent ANOVA)',
               unit: 'Unit 17',
               desc: '用於同一組受試者接受三次以上重複測量（如：前測、後測、追蹤測）時的平均值比較。',
-              book: '傻瓜跑統計 I - Unit 17'
+              book: '給論文寫作者的統計指南 - Unit 17'
             };
           }
         }
@@ -85,7 +85,7 @@ export default function MethodWizard({ onSelectMethod }) {
             title: '多因子獨立樣本變異數分析 (Factorial Independent ANOVA)',
             unit: 'Unit 18, 21',
             desc: '用於探討兩個以上自變項且皆為獨立樣本時的平均數比較，重點在於檢驗「交互作用效果」(Interaction Effect)。',
-            book: '傻瓜跑統計 I - Unit 18 & 21'
+            book: '給論文寫作者的統計指南 - Unit 18 & 21'
           };
         } else if (design === 'dependent') {
           return {
@@ -93,7 +93,7 @@ export default function MethodWizard({ onSelectMethod }) {
             title: '多因子相依樣本變異數分析 (Factorial Dependent ANOVA)',
             unit: 'Unit 19, 22',
             desc: '所有自變項均為重複測量變項（相依樣本）時的多因子平均數比較。',
-            book: '傻瓜跑統計 I - Unit 19 & 22'
+            book: '給論文寫作者的統計指南 - Unit 19 & 22'
           };
         } else {
           return {
@@ -101,7 +101,7 @@ export default function MethodWizard({ onSelectMethod }) {
             title: '多因子混合設計變異數分析 (Mixed-Design ANOVA)',
             unit: 'Unit 20, 23, 24',
             desc: '自變項中同時包含「獨立樣本」與「相依樣本（重複測量）」時的分析。例如：組別（實驗組/對照組）× 時間（前測/後測）。',
-            book: '傻瓜跑統計 I - Unit 20, 23, 24'
+            book: '給論文寫作者的統計指南 - Unit 20, 23, 24'
           };
         }
       }
@@ -113,7 +113,7 @@ export default function MethodWizard({ onSelectMethod }) {
             title: 'Pearson 相關分析 (Pearson Correlation)',
             unit: 'Unit 5',
             desc: '用於探討兩個連續型變項之間是否存在線性關聯，以及其關聯強度與方向（正相關或負相關）。',
-            book: '傻瓜跑統計 I - Unit 5'
+            book: '給論文寫作者的統計指南 - Unit 5'
           };
         } else if (modelType === 'regression') {
           return {
@@ -121,7 +121,7 @@ export default function MethodWizard({ onSelectMethod }) {
             title: '複迴歸分析 (Multiple Linear Regression)',
             unit: 'Unit 6, 8',
             desc: '用於探討一個或多個自變項對連續依變項的預測力（可配合階層迴歸排除控制變項影響）。',
-            book: '傻瓜跑統計 I - Unit 6 & 8'
+            book: '給論文寫作者的統計指南 - Unit 6 & 8'
           };
         } else if (modelType === 'mediation') {
           return {
@@ -129,7 +129,7 @@ export default function MethodWizard({ onSelectMethod }) {
             title: '中介效果分析 (Mediation Analysis)',
             unit: 'Unit 7',
             desc: '研究自變項（IV）是否透過中介變項（M）間接預測依變項（DV），並包含 Sobel 檢定或 Bootstrap 顯著性檢驗。',
-            book: '傻瓜跑統計 I - Unit 7'
+            book: '給論文寫作者的統計指南 - Unit 7'
           };
         } else {
           return {
@@ -137,7 +137,7 @@ export default function MethodWizard({ onSelectMethod }) {
             title: '調節效果 / 交互作用分析 (Moderation / Interaction Analysis)',
             unit: 'Unit 9-12',
             desc: '探討自變項與依變項之間的關係，是否隨著調節變項（W）數值高低而改變。包含變項中心化與單純斜率檢定（Simple Slope Test）。',
-            book: '傻瓜跑統計 I - Unit 9-12'
+            book: '給論文寫作者的統計指南 - Unit 9-12'
           };
         }
       } else {
@@ -148,7 +148,7 @@ export default function MethodWizard({ onSelectMethod }) {
             title: '卡方檢定 — 兩間斷變項關聯 (Chi-square Test)',
             unit: 'Unit 13',
             desc: '用於探討兩個間斷變項（如：性別與購買意願是否買）之間的關聯性及分布的獨立性。',
-            book: '傻瓜跑統計 I - Unit 13'
+            book: '給論文寫作者的統計指南 - Unit 13'
           };
         } else {
           return {
@@ -156,7 +156,7 @@ export default function MethodWizard({ onSelectMethod }) {
             title: '邏吉斯迴歸分析 (Logistic Regression)',
             unit: 'Unit 29',
             desc: '當依變項為二分間斷變項（如：錄取/未錄取），而自變項包含連續或類別變項時的非線性迴歸預測。',
-            book: '傻瓜跑統計 II - Unit 29'
+            book: '給論文寫作者的進階統計指南 - Unit 29'
           };
         }
       }
@@ -167,7 +167,7 @@ export default function MethodWizard({ onSelectMethod }) {
           title: '探索性因素分析 (Exploratory Factor Analysis - EFA)',
           unit: 'Unit 14, 15',
           desc: '在未知問卷題目結構下，簡化大量變項，萃取出核心因素並予以命名。推薦使用斜交旋轉以符合特質關聯。',
-          book: '傻瓜跑統計 I - Unit 14-15'
+          book: '給論文寫作者的統計指南 - Unit 14-15'
         };
       } else {
         return {
@@ -175,7 +175,7 @@ export default function MethodWizard({ onSelectMethod }) {
           title: '驗證性因素分析 (CFA) 與 結構方程模型 (SEM)',
           unit: 'Unit 35-39',
           desc: '用於驗證已有理論結構或測量模型是否與實際數據適配，並估計包含潛在變項的複雜因果路徑。需要在 R (lavaan) 中運行。',
-          book: '傻瓜跑統計 II - Unit 35-39'
+          book: '給論文寫作者的進階統計指南 - Unit 35-39'
         };
       }
     }
@@ -505,7 +505,7 @@ export default function MethodWizard({ onSelectMethod }) {
           <div className="bg-[#16171d]/80 rounded-xl p-4 border border-slate-800 max-w-md mx-auto mb-6 text-left">
             <div className="flex items-center space-x-2 text-xs font-semibold text-slate-400 mb-2">
               <BookOpen size={14} className="text-accentViolet" />
-              <span>《傻瓜也會跑統計》手冊定位：<strong className="text-slate-200">{rec.unit}</strong></span>
+              <span>《給論文寫作者的統計指南》手冊定位：<strong className="text-slate-200">{rec.unit}</strong></span>
             </div>
             <p className="text-sm text-slate-300 leading-relaxed">
               {rec.desc}
