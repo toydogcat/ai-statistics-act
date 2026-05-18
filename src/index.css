@@ -1,0 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --color-darkBg: #0b0c10;
+  --color-darkCard: #1f2833;
+  --color-accentViolet: #6366f1;
+  --color-accentEmerald: #10b981;
+  --color-accentPink: #ec4899;
+  --color-accentCyan: #06b6d4;
+}
+
+@utility bg-pulse-violet {
+  animation: pulseGlow 8s ease-in-out infinite;
+}
+
+@utility glass-card {
+  background-color: rgba(17, 19, 24, 0.7);
+  border: 1px solid rgba(203, 213, 225, 0.08);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    border-color: rgba(203, 213, 225, 0.15);
+    box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.05);
+  }
+}
+
+@utility glass-card-violet {
+  background-color: rgba(17, 19, 24, 0.7);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: 0 25px 50px -12px rgba(99, 102, 241, 0.1);
+  }
+}
+
+@utility glass-card-emerald {
+  background-color: rgba(17, 19, 24, 0.7);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  backdrop-filter: blur(12px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  border-radius: 1rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    border-color: rgba(16, 185, 129, 0.4);
+    box-shadow: 0 25px 50px -12px rgba(16, 185, 129, 0.1);
+  }
+}
+
+@utility btn-primary {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(to right, #6366f1, #4f46e5);
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.2);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: linear-gradient(to right, #6366f1, #4338ca);
+    box-shadow: 0 15px 20px -3px rgba(99, 102, 241, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+@utility btn-emerald {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(to right, #10b981, #0d9488);
+  color: #ffffff;
+  font-weight: 600;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: linear-gradient(to right, #10b981, #0f766e);
+    box-shadow: 0 15px 20px -3px rgba(16, 185, 129, 0.3);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+@utility btn-secondary {
+  background-color: rgba(30, 41, 59, 0.8);
+  color: #e2e8f0;
+  border: 1px solid rgba(71, 85, 105, 0.6);
+  font-weight: 600;
+  padding: 0.625rem 1.5rem;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: rgba(51, 65, 85, 0.9);
+  }
+}
+
+@utility grid-input {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+  padding: 0 0.5rem;
+  font-size: 0.875rem;
+  color: #f1f5f9;
+  outline: none;
+  border: none;
+  text-align: center;
+  transition: background-color 0.15s;
+
+  &:focus {
+    background-color: rgba(30, 41, 59, 0.8);
+  }
+}
+
+body {
+  background-color: #0b0c10;
+  color: #f1f5f9;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-image: 
+    radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.05) 0%, transparent 40%);
+  background-attachment: fixed;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Outfit', 'Inter', sans-serif;
+}
+
+/* Custom Scrollbar for Sleek Dark Look */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: #0b0c10;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #1e293b;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #334155;
+}
+
+/* Animations */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
