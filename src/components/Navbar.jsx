@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, HelpCircle, FileSpreadsheet, Sparkles } from 'lucide-react';
+import { BarChart3, HelpCircle, FileSpreadsheet, Sparkles, Brain } from 'lucide-react';
 
 export default function Navbar({ activePage, setActivePage }) {
   return (
@@ -28,7 +28,7 @@ export default function Navbar({ activePage, setActivePage }) {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setActivePage('home')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
               activePage === 'home'
                 ? 'bg-accentViolet/15 text-accentViolet border border-accentViolet/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent'
@@ -40,7 +40,7 @@ export default function Navbar({ activePage, setActivePage }) {
 
           <button
             onClick={() => setActivePage('editor')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
               activePage === 'editor'
                 ? 'bg-accentViolet/15 text-accentViolet border border-accentViolet/30'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent'
@@ -48,6 +48,18 @@ export default function Navbar({ activePage, setActivePage }) {
           >
             <FileSpreadsheet size={16} />
             <span>SPSS 數據網格</span>
+          </button>
+
+          <button
+            onClick={() => setActivePage('psychometrics')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+              activePage === 'psychometrics'
+                ? 'bg-gradient-to-r from-accentViolet/25 to-indigo-500/25 text-white border border-accentViolet/45 shadow-inner'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 border border-transparent'
+            }`}
+          >
+            <Brain size={16} className="text-accentViolet" />
+            <span>心理計量特區</span>
           </button>
         </div>
 

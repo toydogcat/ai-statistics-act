@@ -4,6 +4,7 @@ import MethodWizard from './components/MethodWizard';
 import DataGrid from './components/DataGrid';
 import SimpleAnalysis from './components/SimpleAnalysis';
 import ReportTemplate from './components/ReportTemplate';
+import PsychometricsSuite from './components/PsychometricsSuite';
 
 import { 
   calculateIndependentT, 
@@ -20,7 +21,7 @@ import {
 import { generateRScript } from './utils/rCodeGenerator';
 
 import { 
-  Sparkles, HelpCircle, Layers, ArrowDown, BookOpen 
+  Sparkles, HelpCircle, Layers, ArrowDown, BookOpen, Brain, ChevronRight
 } from 'lucide-react';
 
 export default function App() {
@@ -268,6 +269,37 @@ export default function App() {
               </p>
             </div>
 
+            {/* 心理計量學三大模型特別入口卡片 */}
+            <div className="max-w-4xl mx-auto bg-gradient-to-r from-indigo-950/70 via-slate-900/60 to-purple-950/70 border border-purple-500/30 hover:border-purple-400/50 rounded-3xl p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl relative overflow-hidden group transition-all duration-300">
+              <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-purple-500/20 transition-all"></div>
+              
+              <div className="flex items-center space-x-4">
+                <div className="bg-purple-500/10 text-purple-400 p-4 rounded-2xl border border-purple-500/25 group-hover:scale-105 transition-transform duration-300">
+                  <Brain size={28} className="animate-pulse text-purple-400" />
+                </div>
+                <div className="space-y-1.5">
+                  <span className="text-5xs font-black text-purple-400 uppercase tracking-widest block">心理計量考題分析特別入口</span>
+                  <h3 className="text-base font-extrabold text-white group-hover:text-purple-300 transition-colors">
+                    大考三大測驗理論分析線上版 (CTT / IRT / CDM)
+                  </h3>
+                  <p className="text-4xs text-slate-400 leading-relaxed font-medium max-w-2xl">
+                    專為學術研究與大考測驗分析打造。結合古典測驗理論 (CTT) KR-20 二元信度、項目反應理論 (IRT) 雙參數 2PL 項目反應特徵曲線 (ICC) 與認知診斷模型 (CDM) DINA 精熟檢索，一鍵產出 A4 APA 印表級大考分析報告。
+                  </p>
+                </div>
+              </div>
+
+              <button
+                onClick={() => {
+                  setActivePage('psychometrics');
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="flex items-center space-x-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-bold shadow-lg shadow-purple-900/40 cursor-pointer active:scale-95 transition-all flex-shrink-0"
+              >
+                <span>進入測驗分析特區</span>
+                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+            </div>
+
             {/* Decision Tree Question wizard */}
             <div>
               <MethodWizard onSelectMethod={handleSelectMethodFromWizard} />
@@ -290,6 +322,9 @@ export default function App() {
             </div>
 
           </div>
+        ) : activePage === 'psychometrics' ? (
+          /* PSYCHOMETRICS SUITE: Special psychometrics portal */
+          <PsychometricsSuite />
         ) : (
           /* EDITOR PAGE: Spreadsheet editor + Variable assignment + Results */
           <div className="space-y-8 animate-fade-in">
