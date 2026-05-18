@@ -1,4 +1,4 @@
-import { tPValue, fPValue, normalCDF } from './distTable.js';
+import { tPValue, fPValue, normalCDF, chiSquarePValue, normalPValue } from './distTable.js';
 
 /**
  * Basic Descriptive Statistics
@@ -669,5 +669,238 @@ export function calculateModeration(IVData, ModData, YData, ivName = 'IV', modNa
       low: { val: slopeLow, se: seLow, t: tLow, p: pLow, level: 'Low ' + modName + ' (-1 SD)' }
     },
     graphPoints
+  };
+}
+
+/**
+ * Chi-Square Independence Test
+ * Analyzes association between two categorical variables.
+ */
+export function calculateChiSquare(colX, colY) {
+  const cleanX = [];
+  const cleanY = [];
+  for (let i = 0; i < colX.length; i++) {
+    if (colX[i] !== null && colX[i] !== undefined && colX[i] !== '' &&
+        colY[i] !== null && colY[i] !== undefined && colY[i] !== '') {
+      cleanX.push(String(colX[i]).trim());
+      cleanY.push(String(colY[i]).trim());
+    }
+  }
+
+  const n = cleanX.length;
+  if (n < 5) return null;
+
+  const catsX = [...new Set(cleanX)].sort();
+  const catsY = [...new Set(cleanY)].sort();
+
+  const r = catsX.length;
+  const c = catsY.length;
+  if (r < 2 || c < 2) return null;
+
+  const observed = Array.from({ length: r }, () => Array(c).fill(0));
+  const rowTotals = Array(r).fill(0);
+  const colTotals = Array(c).fill(0);
+
+  for (let i = 0; i < n; i++) {
+    const rIdx = catsX.indexOf(cleanX[i]);
+    const cIdx = catsY.indexOf(cleanY[i]);
+    observed[rIdx][cIdx]++;
+    rowTotals[rIdx]++;
+    colTotals[cIdx]++;
+  }
+
+  let chi2 = 0;
+  const expected = Array.from({ length: r }, () => Array(c).fill(0));
+
+  for (let i = 0; i < r; i++) {
+    for (let j = 0; j < c; j++) {
+      expected[i][j] = (rowTotals[i] * colTotals[j]) / n;
+      if (expected[i][j] > 0) {
+        chi2 += Math.pow(observed[i][j] - expected[i][j], 2) / expected[i][j];
+      }
+    }
+  }
+
+  const df = (r - 1) * (c - 1);
+  const p = chiSquarePValue(chi2, df);
+  const cramersV = Math.sqrt(chi2 / (n * Math.min(r - 1, c - 1)));
+
+  return {
+    n,
+    catsX,
+    catsY,
+    observed,
+    expected,
+    rowTotals,
+    colTotals,
+    chi2,
+    df,
+    p,
+    cramersV
+  };
+}
+
+/**
+ * Simple Mediation Analysis (Baron & Kenny + Sobel Test)
+ * Fits:
+ * 1. Y = i1 + c * X (Total effect)
+ * 2. M = i2 + a * X (Path a)
+ * 3. Y = i3 + c' * X + b * M (Direct & indirect effects)
+ */
+export function calculateMediation(X, M, Y) {
+  const cleanX = [];
+  const cleanM = [];
+  const cleanY = [];
+  for (let i = 0; i < X.length; i++) {
+    if (X[i] !== null && X[i] !== undefined && !isNaN(X[i]) && X[i] !== '' &&
+        M[i] !== null && M[i] !== undefined && !isNaN(M[i]) && M[i] !== '' &&
+        Y[i] !== null && Y[i] !== undefined && !isNaN(Y[i]) && Y[i] !== '') {
+      cleanX.push(Number(X[i]));
+      cleanM.push(Number(M[i]));
+      cleanY.push(Number(Y[i]));
+    }
+  }
+
+  const n = cleanY.length;
+  if (n < 5) return null;
+
+  // Fit Regression 1: Y = c*X
+  const regTotal = calculateMultipleRegression([cleanX], cleanY, ['X']);
+  if (!regTotal) return null;
+
+  // Fit Regression 2: M = a*X
+  const regPathA = calculateMultipleRegression([cleanX], cleanM, ['X']);
+  if (!regPathA) return null;
+
+  // Fit Regression 3: Y = cPrime*X + b*M
+  const regDirect = calculateMultipleRegression([cleanX, cleanM], cleanY, ['X', 'M']);
+  if (!regDirect) return null;
+
+  const cVal = regTotal.coefficients[1].b;
+  const aVal = regPathA.coefficients[1].b;
+  const seA = regPathA.coefficients[1].se;
+  const bVal = regDirect.coefficients[2].b;
+  const seB = regDirect.coefficients[2].se;
+  const cPrimeVal = regDirect.coefficients[1].b;
+
+  const ab = aVal * bVal;
+  const seAB = Math.sqrt(aVal * aVal * seB * seB + bVal * bVal * seA * seA);
+  const zSobel = seAB > 0 ? ab / seAB : 0;
+  const pSobel = normalPValue(zSobel);
+
+  return {
+    n,
+    totalEffect: cVal,
+    directEffect: cPrimeVal,
+    indirectEffect: ab,
+    pathA: { b: aVal, se: seA, t: regPathA.coefficients[1].t, p: regPathA.coefficients[1].p },
+    pathB: { b: bVal, se: seB, t: regDirect.coefficients[2].t, p: regDirect.coefficients[2].p },
+    sobel: {
+      z: zSobel,
+      se: seAB,
+      p: pSobel
+    },
+    regTotal,
+    regPathA,
+    regDirect
+  };
+}
+
+/**
+ * Scale Reliability Analysis (Cronbach's Alpha)
+ */
+export function calculateReliability(columns) {
+  const numItems = columns.length;
+  if (numItems < 2) return null;
+
+  const n = columns[0].length;
+  const cleanRows = [];
+  
+  for (let i = 0; i < n; i++) {
+    let valid = true;
+    const rowVals = [];
+    for (let j = 0; j < numItems; j++) {
+      const val = columns[j][i];
+      if (val === null || val === undefined || isNaN(val) || val === '') {
+        valid = false;
+        break;
+      }
+      rowVals.push(Number(val));
+    }
+    if (valid) {
+      cleanRows.push(rowVals);
+    }
+  }
+
+  const cleanN = cleanRows.length;
+  if (cleanN < 3) return null;
+
+  const cleanItems = Array.from({ length: numItems }, () => []);
+  for (let i = 0; i < cleanN; i++) {
+    for (let j = 0; j < numItems; j++) {
+      cleanItems[j].push(cleanRows[i][j]);
+    }
+  }
+
+  const itemVariances = [];
+  const itemMeans = [];
+  const itemSDs = [];
+  for (let j = 0; j < numItems; j++) {
+    const desc = calculateDescriptive(cleanItems[j]);
+    itemVariances.push(desc.variance);
+    itemMeans.push(desc.mean);
+    itemSDs.push(desc.sd);
+  }
+
+  const totalScores = [];
+  for (let i = 0; i < cleanN; i++) {
+    const sum = cleanRows[i].reduce((a, b) => a + b, 0);
+    totalScores.push(sum);
+  }
+  const totalDesc = calculateDescriptive(totalScores);
+  const totalVariance = totalDesc.variance;
+
+  if (totalVariance === 0) return null;
+
+  const sumItemVariances = itemVariances.reduce((a, b) => a + b, 0);
+  const alpha = (numItems / (numItems - 1)) * (1 - sumItemVariances / totalVariance);
+
+  const itemAnalysis = [];
+  for (let j = 0; j < numItems; j++) {
+    const delItemVariances = itemVariances.filter((_, idx) => idx !== j);
+    const delSumVariances = delItemVariances.reduce((a, b) => a + b, 0);
+    
+    const delTotalScores = [];
+    for (let i = 0; i < cleanN; i++) {
+      const sum = cleanRows[i].reduce((a, b, idx) => idx === j ? a : a + b, 0);
+      delTotalScores.push(sum);
+    }
+    const delTotalDesc = calculateDescriptive(delTotalScores);
+    const delTotalVariance = delTotalDesc.variance;
+    
+    let alphaIfDeleted = 0;
+    if (numItems > 2 && delTotalVariance > 0) {
+      alphaIfDeleted = ((numItems - 1) / (numItems - 2)) * (1 - delSumVariances / delTotalVariance);
+    }
+
+    const corr = calculateCorrelation(cleanItems[j], delTotalScores);
+
+    itemAnalysis.push({
+      itemIndex: j,
+      mean: itemMeans[j],
+      sd: itemSDs[j],
+      itemVar: itemVariances[j],
+      correctedCorrelation: corr ? corr.r : 0,
+      alphaIfDeleted
+    });
+  }
+
+  return {
+    n: cleanN,
+    numItems,
+    alpha,
+    itemVariances,
+    totalVariance,
+    itemAnalysis
   };
 }

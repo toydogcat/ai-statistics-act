@@ -103,10 +103,11 @@ export default function DataGrid({
 
   // Double-Click Cell Edit Handlers
   const handleCellBlur = (rowIndex, colIndex, val) => {
-    const numericVal = val === '' || isNaN(val) ? null : parseFloat(val);
+    const trimmed = val.trim();
+    const finalVal = (trimmed === '' || isNaN(trimmed)) ? (trimmed || null) : parseFloat(trimmed);
     setData(prev => {
       const newData = prev.map(r => [...r]);
-      newData[rowIndex][colIndex] = numericVal;
+      newData[rowIndex][colIndex] = finalVal;
       return newData;
     });
     setEditingCell(null);
@@ -160,7 +161,7 @@ export default function DataGrid({
             <div>
               <label className="text-xs font-bold text-slate-400 block">分組自變項 (類別 IV)</label>
               <select
-                value={variableMapping.group}
+                value={variableMapping.group || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, group: e.target.value }))}
                 className={selectClass}
               >
@@ -171,7 +172,7 @@ export default function DataGrid({
             <div>
               <label className="text-xs font-bold text-slate-400 block">分析結果依變項 (連續 DV)</label>
               <select
-                value={variableMapping.y}
+                value={variableMapping.y || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, y: e.target.value }))}
                 className={selectClass}
               >
@@ -188,7 +189,7 @@ export default function DataGrid({
             <div>
               <label className="text-xs font-bold text-slate-400 block">前測數值 (Pre-test)</label>
               <select
-                value={variableMapping.pre}
+                value={variableMapping.pre || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, pre: e.target.value }))}
                 className={selectClass}
               >
@@ -199,7 +200,7 @@ export default function DataGrid({
             <div>
               <label className="text-xs font-bold text-slate-400 block">後測數值 (Post-test)</label>
               <select
-                value={variableMapping.post}
+                value={variableMapping.post || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, post: e.target.value }))}
                 className={selectClass}
               >
@@ -216,7 +217,7 @@ export default function DataGrid({
             <div>
               <label className="text-xs font-bold text-slate-400 block">變項 1 (連續型 X)</label>
               <select
-                value={variableMapping.x}
+                value={variableMapping.x || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, x: e.target.value }))}
                 className={selectClass}
               >
@@ -227,7 +228,7 @@ export default function DataGrid({
             <div>
               <label className="text-xs font-bold text-slate-400 block">變項 2 (連續型 Y)</label>
               <select
-                value={variableMapping.y}
+                value={variableMapping.y || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, y: e.target.value }))}
                 className={selectClass}
               >
@@ -242,9 +243,9 @@ export default function DataGrid({
         {selectedMethod === 'regression' && (
           <>
             <div>
-              <label className="text-xs font-bold text-slate-400 block">自變項 (X - 可多選，目前先選定單個核心 X)</label>
+              <label className="text-xs font-bold text-slate-400 block">自變項 (X)</label>
               <select
-                value={variableMapping.x}
+                value={variableMapping.x || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, x: e.target.value }))}
                 className={selectClass}
               >
@@ -255,7 +256,7 @@ export default function DataGrid({
             <div>
               <label className="text-xs font-bold text-slate-400 block">依變項 (Y)</label>
               <select
-                value={variableMapping.y}
+                value={variableMapping.y || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, y: e.target.value }))}
                 className={selectClass}
               >
@@ -266,13 +267,13 @@ export default function DataGrid({
           </>
         )}
 
-        {/* Moderation */}
-        {selectedMethod === 'moderation' && (
+        {/* Moderation / Mediation */}
+        {(selectedMethod === 'moderation' || selectedMethod === 'mediation') && (
           <>
             <div>
-              <label className="text-xs font-bold text-slate-400 block">自變項 (核心 X)</label>
+              <label className="text-xs font-bold text-slate-400 block">自變項 (X)</label>
               <select
-                value={variableMapping.x}
+                value={variableMapping.x || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, x: e.target.value }))}
                 className={selectClass}
               >
@@ -281,9 +282,11 @@ export default function DataGrid({
               </select>
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-400 block">調節變項 (W)</label>
+              <label className="text-xs font-bold text-slate-400 block">
+                {selectedMethod === 'moderation' ? '調節變項 (W)' : '中介變項 (M)'}
+              </label>
               <select
-                value={variableMapping.w}
+                value={variableMapping.w || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, w: e.target.value }))}
                 className={selectClass}
               >
@@ -294,7 +297,7 @@ export default function DataGrid({
             <div>
               <label className="text-xs font-bold text-slate-400 block">依變項 (Y)</label>
               <select
-                value={variableMapping.y}
+                value={variableMapping.y || ''}
                 onChange={(e) => setVariableMapping(prev => ({ ...prev, y: e.target.value }))}
                 className={selectClass}
               >
@@ -305,11 +308,171 @@ export default function DataGrid({
           </>
         )}
 
-        {/* Catch-all for unsupported methods in client-side JS */}
-        {!['ind-t', 'dep-t', 'correlation', 'oneway-anova', 'regression', 'moderation'].includes(selectedMethod) && (
-          <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 text-xs text-slate-400 leading-relaxed">
-            💡 本平台將為此方法提供 WebR (WebAssembly R 引擎) 進行計算支援。當前支持在 JS 中進行本機高速計算的有：t 檢定、單因子 ANOVA、線性迴歸與調節效果。
+        {/* Chi-Square Test */}
+        {selectedMethod === 'chisquare' && (
+          <>
+            <div>
+              <label className="text-xs font-bold text-slate-400 block">類別變項 A (欄位 X)</label>
+              <select
+                value={variableMapping.x || ''}
+                onChange={(e) => setVariableMapping(prev => ({ ...prev, x: e.target.value }))}
+                className={selectClass}
+              >
+                <option value="">-- 選擇欄位 --</option>
+                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-400 block">類別變項 B (欄位 Y)</label>
+              <select
+                value={variableMapping.y || ''}
+                onChange={(e) => setVariableMapping(prev => ({ ...prev, y: e.target.value }))}
+                className={selectClass}
+              >
+                <option value="">-- 選擇欄位 --</option>
+                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+          </>
+        )}
+
+        {/* Reliability Analysis Checklist */}
+        {selectedMethod === 'reliability' && (
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-400 block mb-1">選擇信度分析題目欄位 (可多選)：</label>
+            <div className="max-h-48 overflow-y-auto space-y-2 bg-slate-900 border border-slate-800 rounded-xl p-3">
+              {headers.map(h => {
+                const checked = (variableMapping.reliabilityItems || []).includes(h);
+                return (
+                  <label key={h} className="flex items-center space-x-2 text-xs font-semibold text-slate-300 cursor-pointer hover:text-white">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        const nextItems = e.target.checked
+                          ? [...(variableMapping.reliabilityItems || []), h]
+                          : (variableMapping.reliabilityItems || []).filter(item => item !== h);
+                        setVariableMapping(prev => ({ ...prev, reliabilityItems: nextItems }));
+                      }}
+                      className="rounded border-slate-800 text-accentViolet focus:ring-accentViolet bg-slate-950"
+                    />
+                    <span>{h}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
+        )}
+
+        {/* Advanced Repeated Measures ANOVA mappings */}
+        {['mixed-anova', 'oneway-dep-anova', 'multi-dep-anova'].includes(selectedMethod) && (
+          <>
+            {['mixed-anova', 'multi-dep-anova'].includes(selectedMethod) && (
+              <div>
+                <label className="text-xs font-bold text-slate-400 block">組間自變項 (Between IV)</label>
+                <select
+                  value={variableMapping.group || ''}
+                  onChange={(e) => setVariableMapping(prev => ({ ...prev, group: e.target.value }))}
+                  className={selectClass}
+                >
+                  <option value="">-- 選擇欄位 --</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+            )}
+            <div>
+              <label className="text-xs font-bold text-slate-400 block">時間點 1 (如 Pre-test)</label>
+              <select
+                value={variableMapping.pre || ''}
+                onChange={(e) => setVariableMapping(prev => ({ ...prev, pre: e.target.value }))}
+                className={selectClass}
+              >
+                <option value="">-- 選擇欄位 --</option>
+                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-400 block">時間點 2 (如 Post-test)</label>
+              <select
+                value={variableMapping.post || ''}
+                onChange={(e) => setVariableMapping(prev => ({ ...prev, post: e.target.value }))}
+                className={selectClass}
+              >
+                <option value="">-- 選擇欄位 --</option>
+                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+          </>
+        )}
+
+        {/* Advanced R-only non-repeated methods (EFA, SEM, Logistic) */}
+        {['efa', 'sem', 'logistic', 'multi-ind-anova'].includes(selectedMethod) && (
+          <>
+            {selectedMethod === 'efa' ? (
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 block mb-1">選擇 EFA 分析題目欄位 (可多選)：</label>
+                <div className="max-h-48 overflow-y-auto space-y-2 bg-slate-900 border border-slate-800 rounded-xl p-3">
+                  {headers.map(h => {
+                    const checked = (variableMapping.reliabilityItems || []).includes(h);
+                    return (
+                      <label key={h} className="flex items-center space-x-2 text-xs font-semibold text-slate-300 cursor-pointer hover:text-white">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            const nextItems = e.target.checked
+                              ? [...(variableMapping.reliabilityItems || []), h]
+                              : (variableMapping.reliabilityItems || []).filter(item => item !== h);
+                            setVariableMapping(prev => ({ ...prev, reliabilityItems: nextItems }));
+                          }}
+                          className="rounded border-slate-800 text-accentViolet focus:ring-accentViolet bg-slate-950"
+                        />
+                        <span>{h}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block">自變項/預測項 (X)</label>
+                  <select
+                    value={variableMapping.x || ''}
+                    onChange={(e) => setVariableMapping(prev => ({ ...prev, x: e.target.value }))}
+                    className={selectClass}
+                  >
+                    <option value="">-- 選擇欄位 --</option>
+                    {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+                {selectedMethod !== 'logistic' && (
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 block">第二變項 (W)</label>
+                    <select
+                      value={variableMapping.w || ''}
+                      onChange={(e) => setVariableMapping(prev => ({ ...prev, w: e.target.value }))}
+                      className={selectClass}
+                    >
+                      <option value="">-- 選擇欄位 --</option>
+                      {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block">依變項/結果項 (Y)</label>
+                  <select
+                    value={variableMapping.y || ''}
+                    onChange={(e) => setVariableMapping(prev => ({ ...prev, y: e.target.value }))}
+                    className={selectClass}
+                  >
+                    <option value="">-- 選擇欄位 --</option>
+                    {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+          </>
         )}
       </div>
     );
@@ -319,10 +482,20 @@ export default function DataGrid({
     switch(selectedMethod) {
       case 'ind-t': return '獨立樣本 t 檢定';
       case 'dep-t': return '相依樣本 t 檢定';
-      case 'correlation': return 'Pearson 相關';
-      case 'oneway-anova': return '單因子 ANOVA';
+      case 'correlation': return 'Pearson 相關分析';
       case 'regression': return '複迴歸分析';
-      case 'moderation': return '調節效果分析';
+      case 'mediation': return '中介效果分析';
+      case 'moderation': return '調節效果 / 交互作用分析';
+      case 'chisquare': return '卡方獨立性檢定';
+      case 'reliability': return '問卷信度分析 (Cronbach\'s Alpha)';
+      case 'oneway-anova': return '單因子獨立樣本 ANOVA';
+      case 'oneway-dep-anova': return '單因子相依樣本 ANOVA [R]';
+      case 'multi-ind-anova': return '多因子獨立樣本 ANOVA [R]';
+      case 'multi-dep-anova': return '多因子相依樣本 ANOVA [R]';
+      case 'mixed-anova': return '多因子混合設計 ANOVA [R]';
+      case 'logistic': return '邏吉斯迴歸分析 [R]';
+      case 'efa': return '探索性因素分析 EFA [R]';
+      case 'sem': return '結構方程模型 SEM / CFA [R]';
       default: return '未指定 / 其他進階分析';
     }
   };
@@ -494,8 +667,7 @@ export default function DataGrid({
                           {isEditing ? (
                             <input
                               autoFocus
-                              type="number"
-                              step="any"
+                              type="text"
                               defaultValue={row[colIdx] === null ? '' : row[colIdx]}
                               onBlur={(e) => handleCellBlur(rowIdx, colIdx, e.target.value)}
                               onKeyDown={(e) => {

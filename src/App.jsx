@@ -11,8 +11,13 @@ import {
   calculateCorrelation, 
   calculateOneWayANOVA, 
   calculateMultipleRegression, 
-  calculateModeration 
+  calculateModeration,
+  calculateChiSquare,
+  calculateMediation,
+  calculateReliability
 } from './utils/statsEngine';
+
+import { generateRScript } from './utils/rCodeGenerator';
 
 import { 
   Sparkles, HelpCircle, Layers, ArrowDown, BookOpen 
@@ -42,7 +47,8 @@ export default function App() {
     w: '',
     group: 'Group',
     pre: '',
-    post: ''
+    post: '',
+    reliabilityItems: ['X', 'Y']
   });
 
   const [selectedMethod, setSelectedMethod] = useState('ind-t');
@@ -55,14 +61,20 @@ export default function App() {
     
     // Auto map values based on selected method
     if (methodId === 'ind-t' || methodId === 'oneway-anova') {
-      setVariableMapping({ x: '', y: 'Y', w: '', group: 'Group', pre: '', post: '' });
+      setVariableMapping({ x: '', y: 'Y', w: '', group: 'Group', pre: '', post: '', reliabilityItems: ['X', 'Y'] });
     } else if (methodId === 'dep-t') {
-      setVariableMapping({ x: '', y: '', w: '', group: '', pre: 'X', post: 'Y' });
+      setVariableMapping({ x: '', y: '', w: '', group: '', pre: 'X', post: 'Y', reliabilityItems: ['X', 'Y'] });
     } else if (methodId === 'correlation' || methodId === 'regression') {
-      setVariableMapping({ x: 'X', y: 'Y', w: '', group: '', pre: '', post: '' });
-    } else if (methodId === 'moderation') {
-      // Find another col or add one
-      setVariableMapping({ x: 'X', y: 'Y', w: 'Group', group: '', pre: '', post: '' });
+      setVariableMapping({ x: 'X', y: 'Y', w: '', group: '', pre: '', post: '', reliabilityItems: ['X', 'Y'] });
+    } else if (methodId === 'moderation' || methodId === 'mediation') {
+      setVariableMapping({ x: 'X', y: 'Y', w: 'Group', group: '', pre: '', post: '', reliabilityItems: ['X', 'Y'] });
+    } else if (methodId === 'chisquare') {
+      setVariableMapping({ x: 'Group', y: 'Y', w: '', group: '', pre: '', post: '', reliabilityItems: ['X', 'Y'] });
+    } else if (methodId === 'reliability') {
+      setVariableMapping({ x: '', y: '', w: '', group: '', pre: '', post: '', reliabilityItems: ['X', 'Y'] });
+    } else {
+      // For R templates, initialize generic mappings so nothing fails
+      setVariableMapping({ x: 'X', y: 'Y', w: 'Group', group: 'Group', pre: 'X', post: 'Y', reliabilityItems: ['X', 'Y'] });
     }
     
     setActivePage('editor');
@@ -78,97 +90,138 @@ export default function App() {
     };
 
     let res = null;
+    const isClientJSMethod = ['ind-t', 'dep-t', 'correlation', 'oneway-anova', 'regression', 'moderation', 'mediation', 'chisquare', 'reliability'].includes(selectedMethod);
 
-    if (selectedMethod === 'ind-t') {
-      const groupCol = getColData(variableMapping.group);
-      const yCol = getColData(variableMapping.y);
-      if (!variableMapping.group || !variableMapping.y) {
-        alert("請確認是否已正確設定分組變項及依變項欄位！");
-        return;
-      }
-
-      // Filter non-null, listwise
-      const uniqueGroups = [...new Set(groupCol.filter(v => v !== null && v !== undefined && v !== ''))];
-      if (uniqueGroups.length < 2) {
-        alert("獨立樣本 t 檢定的分組變項必須包含至少兩個不同的組別（如：實驗組 vs 對照組）！");
-        return;
-      }
-      const group1 = [];
-      const group2 = [];
-      for (let i = 0; i < groupCol.length; i++) {
-        if (groupCol[i] === uniqueGroups[0]) group1.push(yCol[i]);
-        if (groupCol[i] === uniqueGroups[1]) group2.push(yCol[i]);
-      }
-      res = calculateIndependentT(group1, group2);
-    } 
-    
-    else if (selectedMethod === 'dep-t') {
-      const preCol = getColData(variableMapping.pre);
-      const postCol = getColData(variableMapping.post);
-      if (!variableMapping.pre || !variableMapping.post) {
-        alert("請設定前後測對應之欄位變項！");
-        return;
-      }
-      res = calculateDependentT(preCol, postCol);
-    } 
-    
-    else if (selectedMethod === 'correlation') {
-      const xCol = getColData(variableMapping.x);
-      const yCol = getColData(variableMapping.y);
-      if (!variableMapping.x || !variableMapping.y) {
-        alert("請設定兩個要進行相關性分析的欄位變項！");
-        return;
-      }
-      res = calculateCorrelation(xCol, yCol);
-    } 
-    
-    else if (selectedMethod === 'oneway-anova') {
-      const groupCol = getColData(variableMapping.group);
-      const yCol = getColData(variableMapping.y);
-      if (!variableMapping.group || !variableMapping.y) {
-        alert("請設定分組類別與依變項！");
-        return;
-      }
-
-      const groupsData = {};
-      for (let i = 0; i < groupCol.length; i++) {
-        const g = groupCol[i];
-        if (g === null || g === undefined || g === '') continue;
-        if (!groupsData[g]) groupsData[g] = [];
-        groupsData[g].push(yCol[i]);
-      }
-      res = calculateOneWayANOVA(groupsData);
-    } 
-    
-    else if (selectedMethod === 'regression') {
-      const xCol = getColData(variableMapping.x);
-      const yCol = getColData(variableMapping.y);
-      if (!variableMapping.x || !variableMapping.y) {
-        alert("請設定自變項與依變項！");
-        return;
-      }
-      res = calculateMultipleRegression([xCol], yCol, [variableMapping.x]);
-    } 
-    
-    else if (selectedMethod === 'moderation') {
-      const xCol = getColData(variableMapping.x);
-      const wCol = getColData(variableMapping.w);
-      const yCol = getColData(variableMapping.y);
-      if (!variableMapping.x || !variableMapping.w || !variableMapping.y) {
-        alert("請設定自變項、調節變項與依變項！");
-        return;
-      }
-
-      // Convert Moderator group to numeric if it's text, or center it directly
-      const cleanW = wCol.map(val => {
-        if (typeof val === 'string') {
-          // simple hash or length fallback
-          return val.length;
+    if (isClientJSMethod) {
+      if (selectedMethod === 'ind-t') {
+        const groupCol = getColData(variableMapping.group);
+        const yCol = getColData(variableMapping.y);
+        if (!variableMapping.group || !variableMapping.y) {
+          alert("請確認是否已正確設定分組變項及依變項欄位！");
+          return;
         }
-        return val;
-      });
 
-      res = calculateModeration(xCol, cleanW, yCol, variableMapping.x, variableMapping.w);
+        // Filter non-null, listwise
+        const uniqueGroups = [...new Set(groupCol.filter(v => v !== null && v !== undefined && v !== ''))];
+        if (uniqueGroups.length < 2) {
+          alert("獨立樣本 t 檢定的分組變項必須包含至少兩個不同的組別（如：實驗組 vs 對照組）！");
+          return;
+        }
+        const group1 = [];
+        const group2 = [];
+        for (let i = 0; i < groupCol.length; i++) {
+          if (groupCol[i] === uniqueGroups[0]) group1.push(yCol[i]);
+          if (groupCol[i] === uniqueGroups[1]) group2.push(yCol[i]);
+        }
+        res = calculateIndependentT(group1, group2);
+      } 
+      
+      else if (selectedMethod === 'dep-t') {
+        const preCol = getColData(variableMapping.pre);
+        const postCol = getColData(variableMapping.post);
+        if (!variableMapping.pre || !variableMapping.post) {
+          alert("請設定前後測對應之欄位變項！");
+          return;
+        }
+        res = calculateDependentT(preCol, postCol);
+      } 
+      
+      else if (selectedMethod === 'correlation') {
+        const xCol = getColData(variableMapping.x);
+        const yCol = getColData(variableMapping.y);
+        if (!variableMapping.x || !variableMapping.y) {
+          alert("請設定兩個要進行相關性分析的欄位變項！");
+          return;
+        }
+        res = calculateCorrelation(xCol, yCol);
+      } 
+      
+      else if (selectedMethod === 'oneway-anova') {
+        const groupCol = getColData(variableMapping.group);
+        const yCol = getColData(variableMapping.y);
+        if (!variableMapping.group || !variableMapping.y) {
+          alert("請設定分組類別與依變項！");
+          return;
+        }
+
+        const groupsData = {};
+        for (let i = 0; i < groupCol.length; i++) {
+          const g = groupCol[i];
+          if (g === null || g === undefined || g === '') continue;
+          if (!groupsData[g]) groupsData[g] = [];
+          groupsData[g].push(yCol[i]);
+        }
+        res = calculateOneWayANOVA(groupsData);
+      } 
+      
+      else if (selectedMethod === 'regression') {
+        const xCol = getColData(variableMapping.x);
+        const yCol = getColData(variableMapping.y);
+        if (!variableMapping.x || !variableMapping.y) {
+          alert("請設定自變項與依變項！");
+          return;
+        }
+        res = calculateMultipleRegression([xCol], yCol, [variableMapping.x]);
+      } 
+      
+      else if (selectedMethod === 'moderation') {
+        const xCol = getColData(variableMapping.x);
+        const wCol = getColData(variableMapping.w);
+        const yCol = getColData(variableMapping.y);
+        if (!variableMapping.x || !variableMapping.w || !variableMapping.y) {
+          alert("請設定自變項、調節變項與依變項！");
+          return;
+        }
+
+        // Convert Moderator group to numeric if it's text, or center it directly
+        const cleanW = wCol.map(val => {
+          if (typeof val === 'string') {
+            return val.length;
+          }
+          return val;
+        });
+
+        res = calculateModeration(xCol, cleanW, yCol, variableMapping.x, variableMapping.w);
+      }
+
+      else if (selectedMethod === 'mediation') {
+        const xCol = getColData(variableMapping.x);
+        const mCol = getColData(variableMapping.w); // mediator mapped to w
+        const yCol = getColData(variableMapping.y);
+        if (!variableMapping.x || !variableMapping.w || !variableMapping.y) {
+          alert("請設定自變項、中介變項與依變項！");
+          return;
+        }
+        res = calculateMediation(xCol, mCol, yCol);
+      }
+
+      else if (selectedMethod === 'chisquare') {
+        const xCol = getColData(variableMapping.x);
+        const yCol = getColData(variableMapping.y);
+        if (!variableMapping.x || !variableMapping.y) {
+          alert("請設定兩個要交叉分析的類別型欄位變項！");
+          return;
+        }
+        res = calculateChiSquare(xCol, yCol);
+      }
+
+      else if (selectedMethod === 'reliability') {
+        const items = variableMapping.reliabilityItems || [];
+        if (items.length < 2) {
+          alert("請至少選擇兩個欄位進行問卷信度分析！");
+          return;
+        }
+        const columnsData = items.map(h => getColData(h));
+        res = calculateReliability(columnsData);
+      }
+    } else {
+      // Advanced R method generator
+      const rScript = generateRScript(selectedMethod, variableMapping, headers);
+      res = {
+        isRTemplate: true,
+        method: selectedMethod,
+        rScript
+      };
     }
 
     if (res) {
@@ -263,10 +316,20 @@ export default function App() {
                 >
                   <option value="ind-t">獨立樣本 t 檢定 (Unit 3)</option>
                   <option value="dep-t">相依樣本 t 檢定 (Unit 4)</option>
-                  <option value="correlation">Pearson 相關 (Unit 5)</option>
-                  <option value="oneway-anova">單因子 ANOVA (Unit 16)</option>
-                  <option value="regression">複迴歸分析 (Unit 6)</option>
-                  <option value="moderation">調節效果分析 (Unit 9)</option>
+                  <option value="correlation">Pearson 相關分析 (Unit 5)</option>
+                  <option value="regression">複迴歸分析 (Unit 6 & 8)</option>
+                  <option value="mediation">中介效果分析 (Unit 7)</option>
+                  <option value="moderation">調節效果 / 交互作用分析 (Unit 9-12)</option>
+                  <option value="chisquare">卡方獨立性檢定 (Unit 13)</option>
+                  <option value="reliability">問卷信度分析 (Cronbach's Alpha)</option>
+                  <option value="oneway-anova">單因子獨立樣本 ANOVA (Unit 16)</option>
+                  <option value="oneway-dep-anova">單因子相依樣本 ANOVA (Unit 17) [R]</option>
+                  <option value="multi-ind-anova">多因子獨立樣本 ANOVA (Unit 18, 21) [R]</option>
+                  <option value="multi-dep-anova">多因子相依樣本 ANOVA (Unit 19, 22) [R]</option>
+                  <option value="mixed-anova">多因子混合設計 ANOVA (Unit 20, 23, 24) [R]</option>
+                  <option value="logistic">邏吉斯迴歸分析 (Unit 29) [R]</option>
+                  <option value="efa">探索性因素分析 EFA (Unit 14, 15) [R]</option>
+                  <option value="sem">結構方程模型 SEM / CFA (Unit 35-39) [R]</option>
                 </select>
               </div>
             </div>
@@ -289,26 +352,76 @@ export default function App() {
                 <div className="text-center space-y-2">
                   <div className="inline-flex bg-accentEmerald/15 text-accentEmerald px-3 py-1 rounded-full text-xs font-bold border border-accentEmerald/30 items-center space-x-1 animate-pulse">
                     <CheckCircle2 size={12} />
-                    <span>數據運算完成 (100% Client-Side Engine)</span>
+                    <span>{results.isRTemplate ? "R 語言學術分析腳本已生成 (R-Code Generated)" : "數據運算完成 (100% Client-Side Engine)"}</span>
                   </div>
-                  <h3 className="text-3xl font-extrabold text-white tracking-tight">統計分析結果報告</h3>
+                  <h3 className="text-3xl font-extrabold text-white tracking-tight">
+                    {results.isRTemplate ? "進階統計學術 R 語言語法" : "統計分析結果報告"}
+                  </h3>
                 </div>
 
-                {/* Descriptive Statistics Card */}
-                <SimpleAnalysis 
-                  method={selectedMethod}
-                  results={results}
-                  data={data}
-                  headers={headers}
-                  variableMapping={variableMapping}
-                />
+                {results.isRTemplate ? (
+                  <div className="bg-slate-900/60 rounded-3xl p-6 md:p-8 border border-slate-800/80 backdrop-blur-xl shadow-2xl space-y-6">
+                    <div className="flex items-start space-x-3 bg-accentViolet/10 border border-accentViolet/20 rounded-2xl p-4">
+                      <Sparkles className="text-accentViolet mt-0.5 flex-shrink-0" size={18} />
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-slate-100">
+                          進階多變量統計 R 語法客製化生成
+                        </h4>
+                        <p className="text-xs text-slate-300 leading-relaxed">
+                          此分析方法屬於進階多變量統計學術模型。我們已根據您在上方 <b>SPSS 數據網格</b>中實際配置的欄位對應（例如自變項、依變項等），動態生成了以下 R 語言學術腳本。您只需複製該腳本至 RStudio 或直接在本地 R 環境執行，即可獲得完整的學術統計檢定與變異數分析。
+                        </p>
+                      </div>
+                    </div>
 
-                {/* APA Standard Text Report Generator */}
-                <ReportTemplate 
-                  method={selectedMethod}
-                  results={results}
-                  variableMapping={variableMapping}
-                />
+                    <div className="relative rounded-2xl border border-slate-800 overflow-hidden bg-slate-950 font-mono text-xs">
+                      <div className="flex items-center justify-between px-4 py-2.5 bg-slate-900 border-b border-slate-800 text-slate-400 font-sans font-medium">
+                        <span>r_analysis_script.R</span>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(results.rScript);
+                            alert("R 語言語法已複製至剪貼簿！");
+                          }}
+                          className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition-all text-2xs cursor-pointer"
+                        >
+                          複製 R 代碼
+                        </button>
+                      </div>
+                      <pre className="p-4 overflow-x-auto text-slate-300 select-all leading-relaxed whitespace-pre max-h-96">
+                        {results.rScript}
+                      </pre>
+                    </div>
+
+                    <div className="p-4 bg-slate-950/40 rounded-2xl border border-slate-800/50 space-y-3">
+                      <h5 className="text-xs font-bold text-slate-200 flex items-center space-x-1">
+                        <BookOpen size={13} className="text-accentViolet" />
+                        <span>學術報告指南與詮釋</span>
+                      </h5>
+                      <ul className="text-2xs text-slate-400 space-y-1.5 list-disc list-inside leading-relaxed">
+                        <li><b>數據格式轉換：</b> 重複測量或相依樣本分析通常需要寬格式與長格式（Long-format）的轉換，腳本中已自動包含以 <code className="text-accentViolet">reshape()</code> 進行受試者識別與格式整理的語法。</li>
+                        <li><b>變異數同質性與球形檢定：</b> 執行 <code className="text-accentViolet">ezANOVA()</code> 後，請特別注意輸出報告中的 <code className="text-accentViolet">Mauchly\'s Test</code>。若 <code className="text-slate-300">p &lt; .05</code> 代表違反球形假設，需採用 <code className="text-slate-300">Greenhouse-Geisser (GG)</code> 校正後的結果。</li>
+                        <li><b>交互作用詮釋：</b> 當二因子交互作用顯著時，直接詮釋主效果是不精確的，必須進一步執行「單純主效果檢定」（Simple Main Effects），本腳本已為您自動寫好分層分析的 R 語法。</li>
+                      </ul>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Descriptive Statistics Card */}
+                    <SimpleAnalysis 
+                      method={selectedMethod}
+                      results={results}
+                      data={data}
+                      headers={headers}
+                      variableMapping={variableMapping}
+                    />
+
+                    {/* APA Standard Text Report Generator */}
+                    <ReportTemplate 
+                      method={selectedMethod}
+                      results={results}
+                      variableMapping={variableMapping}
+                    />
+                  </>
+                )}
               </div>
             )}
 

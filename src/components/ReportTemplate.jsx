@@ -384,6 +384,173 @@ ${between.p < 0.05 ? `由於結果顯著，進一步採用 Bonferroni 法進行�
           </table>
         </div>
       );
+    } 
+    
+    else if (method === 'chisquare') {
+      const { n, catsX, catsY, observed, expected, rowTotals, colTotals, chi2, df, p, cramersV } = results;
+      const sigText = p < 0.05 ? '達到顯著水準' : '未達到顯著水準';
+      const sigRelation = p < 0.05 ? '存在顯著相關/關聯性' : '無顯著關聯性';
+      const pStr = p < 0.001 ? 'p < .001' : `p = ${f(p)}`;
+
+      text = `本研究採用卡方獨立性檢定 (Chi-square Test of Independence) 探討類別變項 ${variableMapping.x} 與 ${variableMapping.y} 之間是否具有關聯性。
+統計分析結果顯示，在有效樣本數 N = ${n} 下，卡方檢定值 X²(${df}) = ${f(chi2)}, ${pStr}，且${sigText}。
+這意味著兩變項之間${sigRelation} (Cramer's V = ${f(cramersV, 2)})。`;
+
+      table = (
+        <table ref={tableRef} className="w-full text-sm text-slate-200 border-t-2 border-b-2 border-slate-700 mt-4 text-center">
+          <thead>
+            <tr className="border-b border-slate-700 bg-slate-900/40">
+              <th className="py-2 text-left px-4">{variableMapping.x} × {variableMapping.y}</th>
+              {catsY.map(cat => <th key={cat} className="py-2">{cat} (實際/預期)</th>)}
+              <th className="py-2">總計</th>
+            </tr>
+          </thead>
+          <tbody>
+            {catsX.map((catX, rIdx) => (
+              <tr key={catX} className="border-b border-slate-800/40">
+                <td className="py-2 text-left px-4 font-bold">{catX}</td>
+                {catsY.map((catY, cIdx) => (
+                  <td key={catY} className="py-2">
+                    {observed[rIdx][cIdx]} / {f(expected[rIdx][cIdx], 1)}
+                  </td>
+                ))}
+                <td className="py-2 font-semibold text-slate-400">{rowTotals[rIdx]}</td>
+              </tr>
+            ))}
+            <tr className="font-bold bg-slate-900/20">
+              <td className="py-2 text-left px-4 text-slate-400">總計</td>
+              {colTotals.map((tot, cIdx) => <td key={cIdx} className="py-2 text-slate-400">{tot}</td>)}
+              <td className="py-2 text-accentViolet">{n}</td>
+            </tr>
+            <tr className="border-t border-slate-700 text-xs text-slate-400 font-semibold text-left">
+              <td className="py-2 px-4" colSpan={catsY.length + 2}>
+                Pearson X² = {f(chi2)}, df = {df}, p = {p < 0.001 ? '< .001' : f(p)}, Cramer's V = {f(cramersV, 2)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      );
+    }
+
+    else if (method === 'mediation') {
+      const { n, totalEffect, directEffect, indirectEffect, pathA, pathB, sobel } = results;
+      const sobelSig = sobel.p < 0.05 ? '達到顯著水準' : '未達顯著水準';
+      const medRelation = sobel.p < 0.05 ? '中介效果顯著成立' : '中介效果不成立';
+      const pSobelStr = sobel.p < 0.001 ? 'p < .001' : `p = ${f(sobel.p)}`;
+
+      text = `本研究採用 Baron & Kenny 的中介分析步驟與 Sobel 檢定 (Sobel Test) 探討 ${variableMapping.x} (自變項) 透過 ${variableMapping.w} (中介變項) 對 ${variableMapping.y} (依變項) 的中介效果。
+統計分析結果顯示：
+1. 路徑 a (X -> M)：B = ${f(pathA.b, 3)}, SE = ${f(pathA.se, 3)}, t = ${f(pathA.t)}, p = ${f(pathA.p, 3)}。
+2. 路徑 b (M -> Y)：B = ${f(pathB.b, 3)}, SE = ${f(pathB.se, 3)}, t = ${f(pathB.t)}, p = ${f(pathB.p, 3)}。
+3. 總效果 c (X -> Y)：B = ${f(totalEffect, 3)}。
+4. 直接效果 c' (X -> Y)：B = ${f(directEffect, 3)}。
+5. 間接效果 (ab)：ab = ${f(indirectEffect, 3)}。
+
+進行 Sobel 檢定評估間接效果的顯著性，結果顯示：Z = ${f(sobel.z)}, SE = ${f(sobel.se, 3)}, ${pSobelStr}，間接路徑${sobelSig}，${medRelation}。`;
+
+      table = (
+        <table ref={tableRef} className="w-full text-sm text-slate-200 border-t-2 border-b-2 border-slate-700 mt-4 text-center">
+          <thead>
+            <tr className="border-b border-slate-700 bg-slate-900/40">
+              <th className="py-2 text-left px-4">路徑 / 效果</th>
+              <th className="py-2">效應值 (B)</th>
+              <th className="py-2">標準誤差 SE</th>
+              <th className="py-2">t / Z 檢定值</th>
+              <th className="py-2">p 值</th>
+              <th className="py-2">顯著性</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr className="border-b border-slate-800/40">
+              <td className="py-2 text-left px-4 font-bold">路徑 a (自變項 &rarr; 中介變項)</td>
+              <td className="py-2">{f(pathA.b, 3)}</td>
+              <td className="py-2">{f(pathA.se, 3)}</td>
+              <td className="py-2">{f(pathA.t)}</td>
+              <td className="py-2">{pathA.p < 0.001 ? '< .001' : f(pathA.p)}</td>
+              <td className="py-2">{pathA.p < 0.05 ? '★ 顯著' : '不顯著'}</td>
+            </tr>
+            <tr className="border-b border-slate-800/40">
+              <td className="py-2 text-left px-4 font-bold">路徑 b (中介變項 &rarr; 依變項)</td>
+              <td className="py-2">{f(pathB.b, 3)}</td>
+              <td className="py-2">{f(pathB.se, 3)}</td>
+              <td className="py-2">{f(pathB.t)}</td>
+              <td className="py-2">{pathB.p < 0.001 ? '< .001' : f(pathB.p)}</td>
+              <td className="py-2">{pathB.p < 0.05 ? '★ 顯著' : '不顯著'}</td>
+            </tr>
+            <tr className="border-b border-slate-800/40 text-slate-400">
+              <td className="py-2 text-left px-4">總效果 c (X &rarr; Y)</td>
+              <td className="py-2">{f(totalEffect, 3)}</td>
+              <td className="py-2">-</td>
+              <td className="py-2">-</td>
+              <td className="py-2">-</td>
+              <td className="py-2">-</td>
+            </tr>
+            <tr className="border-b border-slate-800/40 text-slate-400">
+              <td className="py-2 text-left px-4">直接效果 c' (X &rarr; Y)</td>
+              <td className="py-2">{f(directEffect, 3)}</td>
+              <td className="py-2">-</td>
+              <td className="py-2">-</td>
+              <td className="py-2">-</td>
+              <td className="py-2">-</td>
+            </tr>
+            <tr className="text-accentEmerald">
+              <td className="py-2 text-left px-4 font-bold">間接效果 ab (Sobel Test)</td>
+              <td className="py-2 font-black">{f(indirectEffect, 3)}</td>
+              <td className="py-2">{f(sobel.se, 3)}</td>
+              <td className="py-2">{f(sobel.z)}</td>
+              <td className="py-2">{sobel.p < 0.001 ? '< .001' : f(sobel.p)}</td>
+              <td className="py-2 font-bold">{sobel.p < 0.05 ? '★ 顯著' : '不顯著'}</td>
+            </tr>
+          </tbody>
+        </table>
+      );
+    }
+
+    else if (method === 'reliability') {
+      const { n, numItems, alpha, itemAnalysis } = results;
+      const strength = alpha > 0.9 ? '極佳' : alpha > 0.7 ? '良好' : alpha > 0.5 ? '普通' : '不佳';
+      const alphaStr = f(alpha, 3);
+
+      text = `本研究採用 Cronbach's Alpha 信度分析評估所選取之 ${numItems} 個問卷題目的內部一致性 (Internal Consistency)。
+統計分析結果顯示，整體量表信度 Cronbach's α = ${alphaStr}，顯示該量表題目在此樣本數下具有【${strength}】的信度表現（一般以大於 .70 作為良好內部一致性指標）。
+
+項目分析 (Item-Total Analysis) 結果顯示各題目刪除後之信度與相關係數：若有題目之「刪除該題後之 Cronbach's α」明顯高於整體 α 值，或「修正後項目與總分相關」小於 .30，則該題目可考慮刪除以提升量表信度。`;
+
+      table = (
+        <table ref={tableRef} className="w-full text-sm text-slate-200 border-t-2 border-b-2 border-slate-700 mt-4 text-center">
+          <thead>
+            <tr className="border-b border-slate-700 bg-slate-900/40">
+              <th className="py-2 text-left px-4">分析項目 (題目)</th>
+              <th className="py-2">平均數 M</th>
+              <th className="py-2">標準差 SD</th>
+              <th className="py-2">項目與總分相關</th>
+              <th className="py-2">刪除後 Cronbach's α</th>
+            </tr>
+          </thead>
+          <tbody>
+            {itemAnalysis.map((item, idx) => (
+              <tr key={idx} className="border-b border-slate-800/40">
+                <td className="py-2 text-left px-4 font-bold">題目 {idx + 1} ({variableMapping.reliabilityItems ? variableMapping.reliabilityItems[item.itemIndex] : `Item ${item.itemIndex + 1}`})</td>
+                <td className="py-2">{f(item.mean, 2)}</td>
+                <td className="py-2">{f(item.sd, 2)}</td>
+                <td className={`py-2 font-medium ${item.correctedCorrelation < 0.3 ? 'text-rose-400' : 'text-slate-300'}`}>
+                  {f(item.correctedCorrelation, 3)}
+                </td>
+                <td className={`py-2 ${item.alphaIfDeleted > alpha ? 'text-amber-400 font-bold' : 'text-slate-400'}`}>
+                  {f(item.alphaIfDeleted, 3)}
+                </td>
+              </tr>
+            ))}
+            <tr className="font-bold bg-slate-900/30 text-accentEmerald">
+              <td className="py-3 text-left px-4">整體量表 (N = {n}, 題數 = {numItems})</td>
+              <td className="py-3">-</td>
+              <td className="py-3">-</td>
+              <td className="py-3">-</td>
+              <td className="py-3 font-black text-base">{alphaStr}</td>
+            </tr>
+          </tbody>
+        </table>
+      );
     }
 
     return { text, table };
