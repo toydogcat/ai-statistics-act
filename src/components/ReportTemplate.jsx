@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Copy, Check, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Copy, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function ReportTemplate({ method, results, variableMapping }) {
   const [copiedText, setCopiedText] = React.useState(false);
@@ -304,7 +304,7 @@ ${between.p < 0.05 ? `由於結果顯著，進一步採用 Bonferroni 法進行�
     } 
     
     else if (method === 'moderation') {
-      const { r2, coefs, simpleSlopes, graphPoints } = results;
+      const { r2, coefs, simpleSlopes } = results;
       const { constant, iv, mod, interaction } = coefs;
 
       const intSigText = interaction.p < 0.05 ? '達到顯著水準' : '未達顯著水準';
@@ -433,7 +433,7 @@ ${between.p < 0.05 ? `由於結果顯著，進一步採用 Bonferroni 法進行�
     }
 
     else if (method === 'mediation') {
-      const { n, totalEffect, directEffect, indirectEffect, pathA, pathB, sobel } = results;
+      const { totalEffect, directEffect, indirectEffect, pathA, pathB, sobel } = results;
       const sobelSig = sobel.p < 0.05 ? '達到顯著水準' : '未達顯著水準';
       const medRelation = sobel.p < 0.05 ? '中介效果顯著成立' : '中介效果不成立';
       const pSobelStr = sobel.p < 0.001 ? 'p < .001' : `p = ${f(sobel.p)}`;

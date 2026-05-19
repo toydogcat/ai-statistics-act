@@ -1,8 +1,8 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Papa from 'papaparse';
 import { 
-  Upload, Download, Plus, Trash2, Settings2, HelpCircle, 
-  Play, RefreshCw, Layers, Sparkles 
+  Upload, Download, Plus, Trash2, Settings2, 
+  Play, RefreshCw 
 } from 'lucide-react';
 
 export default function DataGrid({ 

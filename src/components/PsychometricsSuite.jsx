@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Papa from 'papaparse';
 import { 
   Sparkles, Award, FileSpreadsheet, Upload, Download, 
   Settings, CheckCircle2, ChevronRight, HelpCircle, 
   Printer, Brain, BarChart3, AlertCircle, Trash2, Plus,
-  BookOpen, Play, Info, FileText, GraduationCap
+  BookOpen, Play
 } from 'lucide-react';
 import { calculateCTT, calculateIRT2PL, calculateCDM } from '../utils/psychometricsEngine';
 
@@ -55,10 +55,10 @@ export default function PsychometricsSuite() {
     [0, 0, 1, 0]  // Q20
   ]);
 
-  // 4. 分析結果狀態
-  const [cttResults, setCttResults] = useState(null);
-  const [irtResults, setIrtResults] = useState(null);
-  const [cdmResults, setCdmResults] = useState(null);
+  // 4. 分析結果狀態 (Derived using useMemo)
+  const cttResults = useMemo(() => calculateCTT(responseMatrix, itemNames), [responseMatrix, itemNames]);
+  const irtResults = useMemo(() => calculateIRT2PL(responseMatrix, itemNames), [responseMatrix, itemNames]);
+  const cdmResults = useMemo(() => calculateCDM(responseMatrix, itemNames, qMatrix, attributeNames), [responseMatrix, itemNames, qMatrix, attributeNames]);
 
   // 當前選取之展示狀態
   const [subPage, setSubPage] = useState('explanation');
@@ -68,26 +68,6 @@ export default function PsychometricsSuite() {
 
   const iccCanvasRef = useRef(null);
   const cdmRadarCanvasRef = useRef(null);
-
-  // 執行三大心理計量模型分析
-  const handleRunAnalysis = () => {
-    // 執行古典測驗理論 (CTT)
-    const ctt = calculateCTT(responseMatrix, itemNames);
-    setCttResults(ctt);
-
-    // 項目反應理論 (IRT 2PL)
-    const irt = calculateIRT2PL(responseMatrix, itemNames);
-    setIrtResults(irt);
-
-    // 認知診斷模型 (CDM DINA)
-    const cdm = calculateCDM(responseMatrix, itemNames, qMatrix, attributeNames);
-    setCdmResults(cdm);
-  };
-
-  // 初始化自動執行一次
-  useEffect(() => {
-    handleRunAnalysis();
-  }, [responseMatrix, qMatrix, itemNames, attributeNames]);
 
   // 繪製項目特徵曲線 (ICC Curve)
   useEffect(() => {
@@ -225,7 +205,7 @@ export default function PsychometricsSuite() {
     ctx.font = '11px monospace';
     ctx.fillText(`鑑別度 a = ${a}`, paddingLeft + 15, paddingTop + 20);
 
-  }, [irtResults, selectedIccItem, subPage]);
+  }, [irtResults, selectedIccItem, subPage, itemNames]);
 
   // 繪製 CDM 認知診斷雷達圖 (Radar Chart)
   useEffect(() => {
@@ -582,27 +562,6 @@ export default function PsychometricsSuite() {
     const newMatrix = responseMatrix.map(row => [...row, 0]);
     setResponseMatrix(newMatrix);
     setQMatrix([...qMatrix, Array(attributeNames.length).fill(0)]);
-  };
-
-  // 刪除試題欄
-  const handleRemoveItem = (colIdx) => {
-    if (itemNames.length <= 2) {
-      alert("試題數量過低，無法進一步刪除！");
-      return;
-    }
-    const removedItemName = itemNames[colIdx];
-    const newNames = itemNames.filter((_, idx) => idx !== colIdx);
-    setItemNames(newNames);
-
-    const newMatrix = responseMatrix.map(row => row.filter((_, idx) => idx !== colIdx));
-    setResponseMatrix(newMatrix);
-
-    const newQ = qMatrix.filter((_, idx) => idx !== colIdx);
-    setQMatrix(newQ);
-
-    if (selectedIccItem === removedItemName) {
-      setSelectedIccItem(newNames[0]);
-    }
   };
 
   // 修改認知屬性標題
@@ -982,7 +941,7 @@ export default function PsychometricsSuite() {
               <thead className="sticky top-0 bg-slate-900 text-slate-300 font-bold border-b border-slate-800 z-10">
                 <tr>
                   <th className="p-3 text-center w-20">學號 ID</th>
-                  {itemNames.map((name, idx) => (
+                  {itemNames.map((name) => (
                     <th key={name} className="p-3 text-center group min-w-16 relative">
                       <div className="flex flex-col items-center">
                         <span className="text-slate-200 font-black">{name}</span>

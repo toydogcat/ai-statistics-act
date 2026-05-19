@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Papa from 'papaparse';
 import { 
-  Upload, Play, Sparkles, Brain, ChevronRight, Info, FileText, 
-  CheckCircle2, Settings, AlertCircle, FileSearch, HelpCircle, 
-  Check, ArrowRight, Activity, Database
+  Upload, Sparkles, Info, FileText, 
+  CheckCircle2, Settings, FileSearch, 
+  ArrowRight, Activity, Database
 } from 'lucide-react';
 
 export default function DiagnosticSuite({ onImportAndAnalyze }) {
@@ -761,7 +761,6 @@ export default function DiagnosticSuite({ onImportAndAnalyze }) {
               {activeRecommendations.map((rec) => {
                 const isPerfect = rec.score === 100;
                 const isHigh = rec.score >= 80;
-                const isPartial = rec.score > 0 && rec.score < 80;
 
                 return (
                   <div 

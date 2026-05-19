@@ -1,4 +1,4 @@
-import { tPValue, fPValue, normalCDF, chiSquarePValue, normalPValue } from './distTable.js';
+import { tPValue, fPValue, chiSquarePValue, normalPValue } from './distTable.js';
 
 /**
  * Basic Descriptive Statistics
@@ -71,8 +71,6 @@ export function calculateIndependentT(group1, group2) {
   const m2 = desc2.mean;
   const v1 = desc1.variance;
   const v2 = desc2.variance;
-  const s1 = desc1.sd;
-  const s2 = desc2.sd;
 
   // 1. Levene's Test (Approximation via absolute deviations t-test)
   // Devs = |x - mean(x)|
@@ -544,7 +542,7 @@ export function calculateMultipleRegression(IVsData, YData, ivNames) {
  * Centering continuous IV and Moderating variable (W), then regresses:
  * Y = b0 + b1*IV_centered + b2*W_centered + b3*Interaction
  */
-export function calculateModeration(IVData, ModData, YData, ivName = 'IV', modName = 'Moderator') {
+export function calculateModeration(IVData, ModData, YData, modName = 'Moderator') {
   const n = YData.length;
   if (n < 5) return null;
 

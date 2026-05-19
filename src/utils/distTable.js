@@ -60,12 +60,12 @@ export function betaInc(x, a, b) {
   // Log Gamma function approximation (Lanczos approximation)
   function logGamma(z) {
     const coef = [
-      76.18009172947146,
-      -86.50532032941677,
-      24.01409824083091,
-      -1.231739572450155,
-      0.1208650973866179e-2,
-      -0.5395239384953e-5
+      76.1800917294,
+      -86.5053203294,
+      24.0140982408,
+      -1.23173957245,
+      0.00120865097,
+      -0.0000053952
     ];
     let x = z;
     let y = z;
@@ -76,7 +76,7 @@ export function betaInc(x, a, b) {
       y += 1.0;
       ser += coef[j] / y;
     }
-    return -tmp + Math.log(2.5066282746310005 * ser / x);
+    return -tmp + Math.log(2.506628274631 * ser / x);
   }
 
   const factor = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1.0 - x)) / a;

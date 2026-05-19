@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Navbar from './components/Navbar';
 import MethodWizard from './components/MethodWizard';
 import DataGrid from './components/DataGrid';
@@ -6,6 +6,7 @@ import SimpleAnalysis from './components/SimpleAnalysis';
 import ReportTemplate from './components/ReportTemplate';
 import PsychometricsSuite from './components/PsychometricsSuite';
 import DiagnosticSuite from './components/DiagnosticSuite';
+import IndustrialSuite from './components/IndustrialSuite';
 
 import { 
   calculateIndependentT, 
@@ -22,7 +23,7 @@ import {
 import { generateRScript } from './utils/rCodeGenerator';
 
 import { 
-  Sparkles, HelpCircle, Layers, ArrowDown, BookOpen, Brain, ChevronRight
+  Sparkles, BookOpen, Brain, ChevronRight
 } from 'lucide-react';
 
 export default function App() {
@@ -365,6 +366,9 @@ export default function App() {
         ) : activePage === 'diagnostic' ? (
           /* DIAGNOSTIC SUITE: Smart advisor portal */
           <DiagnosticSuite onImportAndAnalyze={handleImportFromDiagnostic} />
+        ) : activePage === 'industrial' ? (
+          /* INDUSTRIAL SUITE: Industrial Quality Control Suite */
+          <IndustrialSuite />
         ) : (
           /* EDITOR PAGE: Spreadsheet editor + Variable assignment + Results */
           <div className="space-y-8 animate-fade-in">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { HelpCircle, ChevronRight, RefreshCw, BarChart2, BookOpen } from 'lucide-react';
 
 export default function MethodWizard({ onSelectMethod }) {

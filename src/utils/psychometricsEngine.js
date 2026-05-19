@@ -68,7 +68,7 @@ export function calculateCTT(responseMatrix, itemNames) {
     const dValue = pH - pL;
 
     // 試題品質判定 (依據大考標準)
-    let verdict = "優良";
+    let verdict;
     if (dValue >= 0.40) verdict = "優良 (鑑別度極佳)";
     else if (dValue >= 0.30) verdict = "良好 (可接受)";
     else if (dValue >= 0.20) verdict = "尚可 (需修改)";
@@ -414,7 +414,7 @@ export function calculateCDM(responseMatrix, itemNames, qMatrix, attributeNames)
     }
 
     // 智能補救教學建議
-    let advice = "概念理解良好，建議進行進階跨單元綜合應用訓練。";
+    let advice;
     const masteredAttrs = [];
     const nonMasteredAttrs = [];
     for (let k = 0; k < K; k++) {
