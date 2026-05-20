@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import Papa from 'papaparse';
 import { 
   calculateSPC, 
   calculatePCA, 
@@ -11,7 +12,7 @@ import {
 import { 
   Activity, Settings, Award, AlertTriangle, FileText, 
   Database, RefreshCw, BarChart2, Plus, Trash2, ShieldAlert,
-  Layout
+  Layout, Upload, HelpCircle
 } from 'lucide-react';
 
 // --- Static Mock Datasets ---
@@ -201,6 +202,16 @@ const MOCK_DATASETS = {
       {run: [-1, 1], response: 42},
       {run: [1, 1], response: 60}
     ]
+  },
+  sampling: {
+    name: "電子零件進料檢驗 (Sampling Plan)",
+    description: "針對大批量進料 (N=5000) 的抽樣計畫。設定 AQL 與 LTPD 門檻以評估風險。",
+    N: 5000,
+    n1: 80,
+    c1: 2,
+    isDouble: true,
+    n2: 80,
+    c2: 5
   }
 };
 
@@ -256,6 +267,7 @@ export default function IndustrialSuite() {
   const pcaHistogramCanvasRef = useRef(null);
   const samplingCanvasRef = useRef(null);
   const multivariateCanvasRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // Initialize with bearing dataset on mount
   useEffect(() => {
@@ -291,6 +303,14 @@ export default function IndustrialSuite() {
       setDoeFactors(ds.factors);
       setDoeData(ds.data);
       setActiveTab('doe');
+    } else if (key === 'sampling') {
+      setSampN(ds.N);
+      setSamp_n(ds.n1);
+      setSamp_c(ds.c1);
+      setIsDoubleSampling(ds.isDouble);
+      setSamp_n2(ds.n2);
+      setSamp_c2(ds.c2);
+      setActiveTab('sampling');
     } else {
       setSpcValues(ds.data);
       setSpcRawInput(ds.data.join(', '));
@@ -314,6 +334,44 @@ export default function IndustrialSuite() {
       .map(v => parseFloat(v))
       .filter(v => !isNaN(v));
     setSpcValues(vals);
+  }
+
+  function handleCsvUpload(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: false,
+      skipEmptyLines: true,
+      complete: (results) => {
+        const rows = results.data;
+        if (rows.length === 0) return;
+
+        if (activeTab === 'spc' || activeTab === 'pca') {
+          const vals = rows.flat().map(v => parseFloat(v)).filter(v => !isNaN(v));
+          setSpcValues(vals);
+          setSpcRawInput(vals.join(', '));
+        } else if (activeTab === 'multivariate') {
+          const matrix = rows.map(r => r.map(v => parseFloat(v)).filter(v => !isNaN(v))).filter(r => r.length > 0);
+          if (matrix.length > 0) setMvValues(matrix);
+        } else if (activeTab === 'grr') {
+          const grrData = rows.map(r => ({
+            operator: r[0],
+            part: r[1],
+            trial: parseInt(r[2]),
+            val: parseFloat(r[3])
+          })).filter(r => !isNaN(r.val));
+          if (grrData.length > 0) setGrrRows(grrData);
+        } else if (activeTab === 'doe') {
+          const doe = rows.map(r => ({
+            run: r.slice(0, -1).map(v => parseFloat(v)),
+            response: parseFloat(r[r.length - 1])
+          })).filter(r => !isNaN(r.response));
+          if (doe.length > 0) setDoeData(doe);
+        }
+      }
+    });
+    e.target.value = '';
   }
 
   // --- 0. Draw Multivariate T2 Chart ---
@@ -906,8 +964,24 @@ export default function IndustrialSuite() {
           </div>
         </div>
 
-        {/* Dataset Quick Injector Dashboard */}
-        <div className="flex flex-wrap gap-2 justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleCsvUpload}
+            accept=".csv"
+            className="hidden"
+          />
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center space-x-2 px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-bold transition-all shadow-xl backdrop-blur-md group"
+          >
+            <Upload size={18} className="text-accentViolet group-hover:scale-110 transition-transform" />
+            <span>上傳自定義 CSV 數據</span>
+          </button>
+          
+          {/* Dataset Quick Injector Dashboard */}
+          <div className="flex flex-wrap gap-2 justify-center">
           <button
             onClick={() => loadMockDataset('bearing')}
             className="flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold cursor-pointer active:scale-95 transition-all"
@@ -957,7 +1031,15 @@ export default function IndustrialSuite() {
             <Plus size={13} className="text-blue-400" />
             <span>DOE 產率實驗</span>
           </button>
+          <button
+            onClick={() => loadMockDataset('sampling')}
+            className="flex items-center space-x-1 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold cursor-pointer active:scale-95 transition-all"
+          >
+            <Layout size={13} className="text-amber-500" />
+            <span>抽樣檢驗計畫</span>
+          </button>
         </div>
+      </div>
       </div>
 
       {/* Tabs System */}
@@ -1056,12 +1138,28 @@ export default function IndustrialSuite() {
                   <option value="c">缺點數管制圖 (c Chart)</option>
                   <option value="u">單位缺點數管制圖 (u Chart)</option>
                 </select>
+                <p className="text-[10px] text-slate-500 leading-tight">
+                  {spcChartType.startsWith('xbar') ? "適用於計量型數據（如長度、重量）。n>1 時選用。" : 
+                   spcChartType === 'imr' ? "適用於生產緩慢或破壞性檢驗，n=1。" :
+                   ['p', 'np'].includes(spcChartType) ? "監控不良品比例或數量（二項分佈）。" :
+                   ['c', 'u'].includes(spcChartType) ? "監控缺點總數或單位缺點數（卜瓦松分佈）。" :
+                   "進階統計方法，對 0.5σ - 1.5σ 的微小偏移極為敏感。"}
+                </p>
               </div>
 
               {/* Advanced Parameters for EWMA/CUSUM */}
               {(spcChartType === 'ewma' || spcChartType === 'cusum') && (
                 <div className="p-3.5 bg-indigo-950/20 border border-indigo-500/25 rounded-2xl space-y-3 animate-slide-up">
-                  <h4 className="text-2xs font-bold text-indigo-300 uppercase tracking-widest">進階位移監控參數</h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-2xs font-bold text-indigo-300 uppercase tracking-widest">進階位移監控參數</h4>
+                    <div className="group relative">
+                      <HelpCircle size={12} className="text-slate-500 cursor-help" />
+                      <div className="absolute bottom-full right-0 mb-2 w-48 p-2 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-[9px] text-slate-400 leading-relaxed">
+                        <b>λ (Lambda)</b>: 權重，越小對歷史數據記憶越久，適合偵測極小位移。<br/>
+                        <b>δ (Delta)</b>: 預期偏離中心多少個標準差。
+                      </div>
+                    </div>
+                  </div>
                   
                   {spcChartType === 'ewma' && (
                     <div className="space-y-1.5">
@@ -1527,17 +1625,28 @@ export default function IndustrialSuite() {
                   <div className="md:col-span-7 glass-card p-5 space-y-4">
                     <h4 className="text-xs font-extrabold text-slate-200 flex items-center space-x-1.5"><Award size={14} className="text-accentViolet" /><span>製程能力指標</span></h4>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="p-3 bg-indigo-950/20 border border-indigo-900/30 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block font-bold tracking-widest uppercase">Cp (Potential)</span>
-                        <span className="text-2xl font-black text-white">{pcaResults.within.cp.toFixed(3)}</span>
-                        <span className="text-[10px] text-slate-500 block mt-1">Cpk: {pcaResults.within.cpk.toFixed(3)}</span>
+                        <div className="p-3 bg-indigo-950/20 border border-indigo-900/30 rounded-xl relative group">
+                          <span className="text-[10px] text-slate-400 block font-bold tracking-widest uppercase flex items-center">
+                            Cp (Potential) <HelpCircle size={10} className="ml-1 text-slate-600" />
+                          </span>
+                          <span className="text-2xl font-black text-white">{pcaResults.within.cp.toFixed(3)}</span>
+                          <span className="text-[10px] text-slate-500 block mt-1">Cpk: {pcaResults.within.cpk.toFixed(3)}</span>
+                          <div className="absolute top-0 left-full ml-2 w-40 p-2 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-[9px] text-slate-400">
+                            <b>Cp</b>: 製程精密度（寬度比），越高表示分散越小。<br/>
+                            <b>Cpk</b>: 製程能力指標（含偏心），必須 ≥ 1.33 才算合格。
+                          </div>
+                        </div>
+                        <div className="p-3 bg-purple-950/20 border border-purple-900/30 rounded-xl relative group">
+                          <span className="text-[10px] text-slate-400 block font-bold tracking-widest uppercase flex items-center">
+                            Pp (Overall) <HelpCircle size={10} className="ml-1 text-slate-600" />
+                          </span>
+                          <span className="text-2xl font-black text-white">{pcaResults.overall.pp.toFixed(3)}</span>
+                          <span className="text-[10px] text-slate-500 block mt-1">Ppk: {pcaResults.overall.ppk.toFixed(3)}</span>
+                          <div className="absolute top-0 left-full ml-2 w-40 p-2 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-[9px] text-slate-400">
+                            <b>Pp/Ppk</b>: 長期製程性能，使用全數據標準差計算（包含製程漂移）。
+                          </div>
+                        </div>
                       </div>
-                      <div className="p-3 bg-purple-950/20 border border-purple-900/30 rounded-xl">
-                        <span className="text-[10px] text-slate-400 block font-bold tracking-widest uppercase">Pp (Overall)</span>
-                        <span className="text-2xl font-black text-white">{pcaResults.overall.pp.toFixed(3)}</span>
-                        <span className="text-[10px] text-slate-500 block mt-1">Ppk: {pcaResults.overall.ppk.toFixed(3)}</span>
-                      </div>
-                    </div>
                   </div>
                   <div className="md:col-span-5 glass-card p-5 space-y-4">
                     <h4 className="text-xs font-extrabold text-slate-200 flex items-center space-x-1.5"><AlertTriangle size={14} className="text-accentEmerald" /><span>不合格率估算 (PPM)</span></h4>
@@ -1608,20 +1717,35 @@ export default function IndustrialSuite() {
                 </div>
                 {samplingResults && (
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-850 space-y-1">
-                      <span className="text-2xs text-slate-400 block font-bold tracking-widest uppercase">AQL</span>
+                    <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-850 space-y-1 group relative">
+                      <span className="text-2xs text-slate-400 block font-bold tracking-widest uppercase flex items-center">
+                        AQL <HelpCircle size={10} className="ml-1 text-slate-600" />
+                      </span>
                       <span className="text-2xl font-black text-accentEmerald">{(samplingResults.aql * 100).toFixed(2)} %</span>
                       <span className="text-[9px] text-slate-600 block">生產者風險界限</span>
+                      <div className="absolute top-0 left-full ml-2 w-48 p-2 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-[9px] text-slate-400">
+                        <b>AQL (Acceptable Quality Level)</b>: 允收品質水準。在此不合格率下，批次有 95% 的機率被允收。代表生產者的利潤保障。
+                      </div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-850 space-y-1">
-                      <span className="text-2xs text-slate-400 block font-bold tracking-widest uppercase">LTPD</span>
+                    <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-850 space-y-1 group relative">
+                      <span className="text-2xs text-slate-400 block font-bold tracking-widest uppercase flex items-center">
+                        LTPD <HelpCircle size={10} className="ml-1 text-slate-600" />
+                      </span>
                       <span className="text-2xl font-black text-rose-400">{(samplingResults.ltpd * 100).toFixed(2)} %</span>
                       <span className="text-[9px] text-slate-600 block">消費者風險界限</span>
+                      <div className="absolute top-0 left-full ml-2 w-48 p-2 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-[9px] text-slate-400">
+                        <b>LTPD (Lot Tolerance Percent Defective)</b>: 批次拒收水準。在此不合格率下，批次僅有 10% 的機率被誤收。代表消費者的品質保障。
+                      </div>
                     </div>
-                    <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-850 space-y-1">
-                      <span className="text-2xs text-slate-400 block font-bold tracking-widest uppercase">AOQL</span>
+                    <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-850 space-y-1 group relative">
+                      <span className="text-2xs text-slate-400 block font-bold tracking-widest uppercase flex items-center">
+                        AOQL <HelpCircle size={10} className="ml-1 text-slate-600" />
+                      </span>
                       <span className="text-2xl font-black text-amber-400">{(samplingResults.maxAOQ * 100).toFixed(3)} %</span>
                       <span className="text-[9px] text-slate-600 block">出廠品質極限</span>
+                      <div className="absolute top-0 left-full ml-2 w-48 p-2 bg-slate-900 border border-slate-700 rounded-lg shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-[9px] text-slate-400">
+                        <b>AOQL (Average Outgoing Quality Limit)</b>: 平均出廠品質界限。無論進料品質多差，經過檢驗剔除後的平均品質絕不會超過此數值。
+                      </div>
                     </div>
                     {isDoubleSampling && (
                       <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-800/40 space-y-1 md:col-span-3">
