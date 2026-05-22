@@ -411,33 +411,63 @@ function solveMatrixEquation(X, Y) {
 }
 
 /**
+ * Impute missing values in a numeric array
+ */
+export function imputeArray(arr, strategy = 'mean') {
+  const clean = arr.filter(v => v !== null && v !== undefined && !isNaN(v) && v !== '');
+  if (clean.length === 0) return arr.map(() => 0);
+  
+  let fillValue = 0;
+  if (strategy === 'mean') {
+    fillValue = clean.reduce((a, b) => a + b, 0) / clean.length;
+  } else if (strategy === 'median') {
+    const sorted = [...clean].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    fillValue = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+  }
+
+  return arr.map(v => (v === null || v === undefined || isNaN(v) || v === '') ? fillValue : v);
+}
+
+/**
  * Multiple Linear Regression
  * Inputs:
  * - IVsData: Array of arrays of numbers, representing values of each independent variable [[x1_1, x1_2, ...], [x2_1, x2_2, ...]]
  * - YData: Array of numbers, representing the dependent variable
  * - ivNames: Array of strings of independent variable names
+ * - options: { missing: 'listwise' | 'mean' | 'median' }
  */
-export function calculateMultipleRegression(IVsData, YData, ivNames) {
+export function calculateMultipleRegression(IVsData, YData, ivNames, options = { missing: 'listwise' }) {
   const numIVs = IVsData.length;
   const n = YData.length;
   if (n < numIVs + 2) return null;
 
-  // Filter missing values listwise
-  const cleanIVs = Array.from({ length: numIVs }, () => []);
-  const cleanY = [];
+  const strategy = options.missing || 'listwise';
+  let cleanIVs = [];
+  let cleanY = [];
 
-  for (let i = 0; i < n; i++) {
-    let valid = YData[i] !== null && YData[i] !== undefined && !isNaN(YData[i]);
-    for (let j = 0; j < numIVs; j++) {
-      if (IVsData[j][i] === null || IVsData[j][i] === undefined || isNaN(IVsData[j][i])) {
-        valid = false;
+  if (strategy === 'listwise') {
+    // Filter missing values listwise
+    cleanIVs = Array.from({ length: numIVs }, () => []);
+    for (let i = 0; i < n; i++) {
+      let valid = YData[i] !== null && YData[i] !== undefined && !isNaN(YData[i]) && YData[i] !== '';
+      for (let j = 0; j < numIVs; j++) {
+        if (IVsData[j][i] === null || IVsData[j][i] === undefined || isNaN(IVsData[j][i]) || IVsData[j][i] === '') {
+          valid = false;
+        }
+      }
+      if (valid) {
+        cleanY.push(Number(YData[i]));
+        for (let j = 0; j < numIVs; j++) {
+          cleanIVs[j].push(Number(IVsData[j][i]));
+        }
       }
     }
-    if (valid) {
-      cleanY.push(YData[i]);
-      for (let j = 0; j < numIVs; j++) {
-        cleanIVs[j].push(IVsData[j][i]);
-      }
+  } else {
+    // Impute mean or median
+    cleanY = imputeArray(YData, strategy).map(Number);
+    for (let j = 0; j < numIVs; j++) {
+      cleanIVs[j] = imputeArray(IVsData[j], strategy).map(Number);
     }
   }
 
@@ -542,23 +572,31 @@ export function calculateMultipleRegression(IVsData, YData, ivNames) {
  * Centering continuous IV and Moderating variable (W), then regresses:
  * Y = b0 + b1*IV_centered + b2*W_centered + b3*Interaction
  */
-export function calculateModeration(IVData, ModData, YData, modName = 'Moderator') {
+export function calculateModeration(IVData, ModData, YData, modName = 'Moderator', options = { missing: 'listwise' }) {
   const n = YData.length;
   if (n < 5) return null;
 
-  // Listwise filter missing values
-  const cleanIV = [];
-  const cleanMod = [];
-  const cleanY = [];
+  const strategy = options.missing || 'listwise';
+  let cleanIV = [];
+  let cleanMod = [];
+  let cleanY = [];
 
-  for (let i = 0; i < n; i++) {
-    if (IVData[i] !== null && IVData[i] !== undefined && !isNaN(IVData[i]) &&
-        ModData[i] !== null && ModData[i] !== undefined && !isNaN(ModData[i]) &&
-        YData[i] !== null && YData[i] !== undefined && !isNaN(YData[i])) {
-      cleanIV.push(IVData[i]);
-      cleanMod.push(ModData[i]);
-      cleanY.push(YData[i]);
+  if (strategy === 'listwise') {
+    // Listwise filter missing values
+    for (let i = 0; i < n; i++) {
+      if (IVData[i] !== null && IVData[i] !== undefined && !isNaN(IVData[i]) && IVData[i] !== '' &&
+          ModData[i] !== null && ModData[i] !== undefined && !isNaN(ModData[i]) && ModData[i] !== '' &&
+          YData[i] !== null && YData[i] !== undefined && !isNaN(YData[i]) && YData[i] !== '') {
+        cleanIV.push(Number(IVData[i]));
+        cleanMod.push(Number(ModData[i]));
+        cleanY.push(Number(YData[i]));
+      }
     }
+  } else {
+    // Impute mean or median
+    cleanIV = imputeArray(IVData, strategy).map(Number);
+    cleanMod = imputeArray(ModData, strategy).map(Number);
+    cleanY = imputeArray(YData, strategy).map(Number);
   }
 
   const cleanN = cleanY.length;
@@ -745,33 +783,41 @@ export function calculateChiSquare(colX, colY) {
  * 2. M = i2 + a * X (Path a)
  * 3. Y = i3 + c' * X + b * M (Direct & indirect effects)
  */
-export function calculateMediation(X, M, Y) {
-  const cleanX = [];
-  const cleanM = [];
-  const cleanY = [];
-  for (let i = 0; i < X.length; i++) {
-    if (X[i] !== null && X[i] !== undefined && !isNaN(X[i]) && X[i] !== '' &&
-        M[i] !== null && M[i] !== undefined && !isNaN(M[i]) && M[i] !== '' &&
-        Y[i] !== null && Y[i] !== undefined && !isNaN(Y[i]) && Y[i] !== '') {
-      cleanX.push(Number(X[i]));
-      cleanM.push(Number(M[i]));
-      cleanY.push(Number(Y[i]));
+export function calculateMediation(X, M, Y, options = { missing: 'listwise' }) {
+  const strategy = options.missing || 'listwise';
+  let cleanX = [];
+  let cleanM = [];
+  let cleanY = [];
+
+  if (strategy === 'listwise') {
+    for (let i = 0; i < X.length; i++) {
+      if (X[i] !== null && X[i] !== undefined && !isNaN(X[i]) && X[i] !== '' &&
+          M[i] !== null && M[i] !== undefined && !isNaN(M[i]) && M[i] !== '' &&
+          Y[i] !== null && Y[i] !== undefined && !isNaN(Y[i]) && Y[i] !== '') {
+        cleanX.push(Number(X[i]));
+        cleanM.push(Number(M[i]));
+        cleanY.push(Number(Y[i]));
+      }
     }
+  } else {
+    cleanX = imputeArray(X, strategy).map(Number);
+    cleanM = imputeArray(M, strategy).map(Number);
+    cleanY = imputeArray(Y, strategy).map(Number);
   }
 
   const n = cleanY.length;
   if (n < 5) return null;
 
   // Fit Regression 1: Y = c*X
-  const regTotal = calculateMultipleRegression([cleanX], cleanY, ['X']);
+  const regTotal = calculateMultipleRegression([cleanX], cleanY, ['X'], options);
   if (!regTotal) return null;
 
   // Fit Regression 2: M = a*X
-  const regPathA = calculateMultipleRegression([cleanX], cleanM, ['X']);
+  const regPathA = calculateMultipleRegression([cleanX], cleanM, ['X'], options);
   if (!regPathA) return null;
 
   // Fit Regression 3: Y = cPrime*X + b*M
-  const regDirect = calculateMultipleRegression([cleanX, cleanM], cleanY, ['X', 'M']);
+  const regDirect = calculateMultipleRegression([cleanX, cleanM], cleanY, ['X', 'M'], options);
   if (!regDirect) return null;
 
   const cVal = regTotal.coefficients[1].b;

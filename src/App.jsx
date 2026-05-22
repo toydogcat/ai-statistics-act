@@ -11,16 +11,11 @@ import IndustrialSuite from './components/IndustrialSuite';
 import { 
   calculateIndependentT, 
   calculateDependentT, 
-  calculateCorrelation, 
-  calculateOneWayANOVA, 
-  calculateMultipleRegression, 
-  calculateModeration,
-  calculateChiSquare,
-  calculateMediation,
-  calculateReliability
+  calculateCorrelation
 } from './utils/statsEngine';
-
+import { runAsyncAnalysis } from './utils/engineWorker';
 import { generateRScript } from './utils/rCodeGenerator';
+
 
 import { 
   Sparkles, BookOpen, Brain, ChevronRight
@@ -91,6 +86,7 @@ export default function App() {
   });
 
   const [selectedMethod, setSelectedMethod] = useState('ind-t');
+  const [missingStrategy, setMissingStrategy] = useState('listwise');
   const [results, setResults] = useState(null);
 
   // When a method is selected via the wizard
@@ -120,7 +116,7 @@ export default function App() {
   };
 
   // Run the statistical calculations in the engine
-  const handleRunAnalysis = () => {
+  const handleRunAnalysis = async () => {
     // Extract column array from spreadsheet data
     const getColData = (headerName) => {
       const colIdx = headers.indexOf(headerName);
@@ -130,6 +126,7 @@ export default function App() {
 
     let res = null;
     const isClientJSMethod = ['ind-t', 'dep-t', 'correlation', 'oneway-anova', 'regression', 'moderation', 'mediation', 'chisquare', 'reliability'].includes(selectedMethod);
+    const analysisOptions = { missing: missingStrategy };
 
     if (isClientJSMethod) {
       if (selectedMethod === 'ind-t') {
@@ -190,7 +187,7 @@ export default function App() {
           if (!groupsData[g]) groupsData[g] = [];
           groupsData[g].push(yCol[i]);
         }
-        res = calculateOneWayANOVA(groupsData);
+        res = await runAsyncAnalysis('calculateOneWayANOVA', { groupsData });
       } 
       
       else if (selectedMethod === 'regression') {
@@ -200,7 +197,7 @@ export default function App() {
           alert("請設定自變項與依變項！");
           return;
         }
-        res = calculateMultipleRegression([xCol], yCol, [variableMapping.x]);
+        res = await runAsyncAnalysis('calculateMultipleRegression', { IVsData: [xCol], YData: yCol, ivNames: [variableMapping.x], options: analysisOptions });
       } 
       
       else if (selectedMethod === 'moderation') {
@@ -220,7 +217,7 @@ export default function App() {
           return val;
         });
 
-        res = calculateModeration(xCol, cleanW, yCol, variableMapping.x, variableMapping.w);
+        res = await runAsyncAnalysis('calculateModeration', { IVData: xCol, ModData: cleanW, YData: yCol, modName: variableMapping.w, options: analysisOptions });
       }
 
       else if (selectedMethod === 'mediation') {
@@ -231,7 +228,7 @@ export default function App() {
           alert("請設定自變項、中介變項與依變項！");
           return;
         }
-        res = calculateMediation(xCol, mCol, yCol);
+        res = await runAsyncAnalysis('calculateMediation', { X: xCol, M: mCol, Y: yCol, options: analysisOptions });
       }
 
       else if (selectedMethod === 'chisquare') {
@@ -241,7 +238,7 @@ export default function App() {
           alert("請設定兩個要交叉分析的類別型欄位變項！");
           return;
         }
-        res = calculateChiSquare(xCol, yCol);
+        res = await runAsyncAnalysis('calculateChiSquare', { colX: xCol, colY: yCol });
       }
 
       else if (selectedMethod === 'reliability') {
@@ -251,7 +248,7 @@ export default function App() {
           return;
         }
         const columnsData = items.map(h => getColData(h));
-        res = calculateReliability(columnsData);
+        res = await runAsyncAnalysis('calculateReliability', { columns: columnsData });
       }
     } else {
       // Advanced R method generator
@@ -422,6 +419,8 @@ export default function App() {
               variableMapping={variableMapping}
               setVariableMapping={setVariableMapping}
               selectedMethod={selectedMethod}
+              missingStrategy={missingStrategy}
+              setMissingStrategy={setMissingStrategy}
               onRunAnalysis={handleRunAnalysis}
             />
 

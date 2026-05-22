@@ -1,12 +1,12 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Papa from 'papaparse';
 import { 
   Sparkles, Award, FileSpreadsheet, Upload, Download, 
   Settings, CheckCircle2, ChevronRight, HelpCircle, 
   Printer, Brain, BarChart3, AlertCircle, Trash2, Plus,
-  BookOpen, Play
+  BookOpen, Play, Loader2
 } from 'lucide-react';
-import { calculateCTT, calculateIRT2PL, calculateCDM } from '../utils/psychometricsEngine';
+import { runAsyncAnalysis } from '../utils/engineWorker';
 
 export default function PsychometricsSuite() {
   // 1. 預設 115 學測數學 A 模擬作答數據 (10位學生 x 5道題目)
@@ -55,10 +55,39 @@ export default function PsychometricsSuite() {
     [0, 0, 1, 0]  // Q20
   ]);
 
-  // 4. 分析結果狀態 (Derived using useMemo)
-  const cttResults = useMemo(() => calculateCTT(responseMatrix, itemNames), [responseMatrix, itemNames]);
-  const irtResults = useMemo(() => calculateIRT2PL(responseMatrix, itemNames), [responseMatrix, itemNames]);
-  const cdmResults = useMemo(() => calculateCDM(responseMatrix, itemNames, qMatrix, attributeNames), [responseMatrix, itemNames, qMatrix, attributeNames]);
+  // 4. 分析結果狀態 (Async using Web Worker)
+  const [cttResults, setCttResults] = useState(null);
+  const [irtResults, setIrtResults] = useState(null);
+  const [cdmResults, setCdmResults] = useState(null);
+  const [isCalculating, setIsCalculating] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    
+    const runAnalysis = async () => {
+      setIsCalculating(true);
+      try {
+        const [ctt, irt, cdm] = await Promise.all([
+          runAsyncAnalysis('calculateCTT', { responseMatrix, itemNames }),
+          runAsyncAnalysis('calculateIRT2PL', { responseMatrix, itemNames }),
+          runAsyncAnalysis('calculateCDM', { responseMatrix, itemNames, qMatrix, attributeNames })
+        ]);
+        
+        if (isMounted) {
+          setCttResults(ctt);
+          setIrtResults(irt);
+          setCdmResults(cdm);
+        }
+      } catch (error) {
+        console.error("Analysis Worker Error:", error);
+      } finally {
+        if (isMounted) setIsCalculating(false);
+      }
+    };
+
+    runAnalysis();
+    return () => { isMounted = false; };
+  }, [responseMatrix, itemNames, qMatrix, attributeNames]);
 
   // 當前選取之展示狀態
   const [subPage, setSubPage] = useState('explanation');
@@ -652,29 +681,38 @@ export default function PsychometricsSuite() {
       </div>
 
       {/* 子頁面切換導覽 (📖 理論模型說明 vs 🛠️ 互動分析工作區) */}
-      <div className="flex bg-slate-900/40 p-1 rounded-2xl border border-slate-800/80 max-w-md no-print">
-        <button
-          onClick={() => setSubPage('explanation')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer ${
-            subPage === 'explanation'
-              ? 'bg-gradient-to-tr from-accentViolet/25 to-indigo-500/25 text-white border border-accentViolet/35 shadow-inner'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-          }`}
-        >
-          <BookOpen size={14} />
-          <span>📖 理論模型說明</span>
-        </button>
-        <button
-          onClick={() => setSubPage('workspace')}
-          className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer ${
-            subPage === 'workspace'
-              ? 'bg-gradient-to-tr from-accentViolet/25 to-indigo-500/25 text-white border border-accentViolet/35 shadow-inner'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-          }`}
-        >
-          <Settings size={14} />
-          <span>🛠️ 互動分析工作區</span>
-        </button>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
+        <div className="flex bg-slate-900/40 p-1 rounded-2xl border border-slate-800/80 max-w-md w-full">
+          <button
+            onClick={() => setSubPage('explanation')}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer ${
+              subPage === 'explanation'
+                ? 'bg-gradient-to-tr from-accentViolet/25 to-indigo-500/25 text-white border border-accentViolet/35 shadow-inner'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+            }`}
+          >
+            <BookOpen size={14} />
+            <span>📖 理論模型說明</span>
+          </button>
+          <button
+            onClick={() => setSubPage('workspace')}
+            className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 flex items-center justify-center space-x-2 cursor-pointer ${
+              subPage === 'workspace'
+                ? 'bg-gradient-to-tr from-accentViolet/25 to-indigo-500/25 text-white border border-accentViolet/35 shadow-inner'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+            }`}
+          >
+            <Settings size={14} />
+            <span>🛠️ 互動分析工作區</span>
+          </button>
+        </div>
+
+        {isCalculating && (
+          <div className="flex items-center space-x-2 px-4 py-2 rounded-2xl bg-slate-900/60 border border-slate-800 text-accentViolet text-[10px] font-bold animate-pulse">
+            <Loader2 size={14} className="animate-spin" />
+            <span>背景運算中 (Web Worker Active)...</span>
+          </div>
+        )}
       </div>
 
       {subPage === 'explanation' ? (

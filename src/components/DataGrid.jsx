@@ -13,6 +13,8 @@ export default function DataGrid({
   variableMapping, 
   setVariableMapping, 
   selectedMethod,
+  missingStrategy,
+  setMissingStrategy,
   onRunAnalysis 
 }) {
   const [editingCell, setEditingCell] = useState(null);
@@ -155,6 +157,25 @@ export default function DataGrid({
 
     return (
       <div className="space-y-4">
+        {/* Missing Value Strategy (Global for regression-based methods) */}
+        {['regression', 'moderation', 'mediation'].includes(selectedMethod) && (
+          <div className="bg-slate-950/40 border border-slate-800/60 rounded-xl p-3 mb-2">
+            <label className="text-xs font-bold text-accentViolet block mb-1.5 uppercase tracking-tighter">缺失值處理策略</label>
+            <select
+              value={missingStrategy}
+              onChange={(e) => setMissingStrategy(e.target.value)}
+              className={selectClass}
+            >
+              <option value="listwise">列失過濾 (Listwise Deletion)</option>
+              <option value="mean">平均數插補 (Mean Imputation)</option>
+              <option value="median">中位數插補 (Median Imputation)</option>
+            </select>
+            <p className="text-[10px] text-slate-500 mt-1.5 leading-tight italic">
+              {missingStrategy === 'listwise' ? '* 剔除任何含有缺失值的整列樣本。' : '* 使用該欄位的平均數/中位數填補缺失格。'}
+            </p>
+          </div>
+        )}
+
         {/* Independent Samples t-test / ANOVA */}
         {(selectedMethod === 'ind-t' || selectedMethod === 'oneway-anova') && (
           <>
